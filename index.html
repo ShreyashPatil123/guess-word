@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guess the Word | AI-Powered Game</title>
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/leaderboard.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Trailer Overlay -->
+    <!-- Intro Video Screen (plays once) -->
+    <div id="intro-video-screen" class="intro-screen hidden">
+      <video id="intro-video" muted playsinline>
+        <source src="assets/trailer.mp4" type="video/mp4" />
+      </video>
+      <button id="skip-intro-btn" class="btn glass hidden">
+        Skip Intro <span class="arrow-icon">→</span>
+      </button>
+    </div>
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+      <div class="auth-modal">
+        <div class="auth-header">
+          <h2>Welcome to <span class="highlight">GuessAI</span></h2>
+          <p>Sign in to play the game</p>
+        </div>
+
+        <!-- Mode Toggle Tabs -->
+        <div class="auth-tabs">
+          <button id="auth-login-tab" class="auth-tab active">Login</button>
+          <button id="auth-signup-tab" class="auth-tab">Sign Up</button>
+        </div>
+
+        <!-- LOGIN FORM (Email + Password only) -->
+        <div id="auth-login-form" class="auth-form">
+          <div class="auth-input-group">
+            <label for="login-email">Email</label>
+            <input
+              type="email"
+              id="login-email"
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <div class="auth-input-group">
+            <label for="login-password">Password</label>
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+            />
+          </div>
+          <button id="login-btn" class="btn primary auth-btn">
+            Login
+          </button>
+        </div>
+
+        <!-- SIGNUP FORM - Step 1 (Email + Password + Confirm) -->
+        <div id="auth-signup-form" class="auth-form hidden">
+          <div class="auth-input-group">
+            <label for="signup-email">Email</label>
+            <input
+              type="email"
+              id="signup-email"
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <div class="auth-input-group">
+            <label for="signup-password">Password</label>
+            <input
+              type="password"
+              id="signup-password"
+              placeholder="At least 6 characters"
+              autocomplete="new-password"
+              minlength="6"
+            />
+          </div>
+          <div class="auth-input-group">
+            <label for="signup-confirm">Confirm Password</label>
+            <input
+              type="password"
+              id="signup-confirm"
+              placeholder="Re-enter password"
+              autocomplete="new-password"
+            />
+            <p id="password-mismatch" class="input-error hidden">Passwords do not match</p>
+          </div>
+          <button id="signup-btn" class="btn primary auth-btn" disabled>
+            Create Account
+          </button>
+        </div>
+
+        <!-- SIGNUP FORM - Step 2 (OTP Verification) -->
+        <div id="auth-otp-form" class="auth-form hidden">
+          <p class="auth-info">We sent a verification code to your email</p>
+          <div class="auth-input-group">
+            <label for="signup-otp">Verification Code</label>
+            <input
+              type="text"
+              id="signup-otp"
+              placeholder="Enter 6-digit code"
+              maxlength="6"
+              autocomplete="one-time-code"
+            />
+          </div>
+          <button id="verify-btn" class="btn primary auth-btn">
+            Verify & Create Account
+          </button>
+          <button id="otp-back-btn" class="btn text">
+            ← Use different email
+          </button>
+        </div>
+
+        <!-- Error Message -->
+        <p id="auth-error" class="auth-error hidden"></p>
+      </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="container hidden">
+      <!-- Header -->
+      <header>
+        <div class="header-left">
+          <button id="menu-btn" class="icon-btn" aria-label="Menu">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+          <button id="leaderboard-btn" class="icon-btn" aria-label="Leaderboard">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="logo">
+          <h1>GUESS<span class="highlight">AI</span></h1>
+        </div>
+
+        <div class="header-right">
+          <span id="user-display" class="user-display hidden"></span>
+          <button
+            id="logout-btn"
+            class="icon-btn hidden"
+            aria-label="Logout"
+            title="Logout"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+          <button
+            id="achievements-btn"
+            class="icon-btn"
+            aria-label="Achievements"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="7" />
+              <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+            </svg>
+          </button>
+          <button id="settings-btn" class="icon-btn" aria-label="Settings">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
+          <!-- Pause Button (visible during gameplay) -->
+          <button id="pause-btn" class="icon-btn hidden" aria-label="Pause Game" title="Pause">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard / Home Screen -->
+      <section id="dashboard" class="screen active">
+        <!-- Decorative Background Grid (Non-interactive) -->
+        <div class="home-bg-grid" aria-hidden="true">
+          <div class="bg-grid">
+            <div class="bg-row">
+              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+            </div>
+            <div class="bg-row">
+              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+            </div>
+            <div class="bg-row">
+              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+            </div>
+            <div class="bg-row">
+              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+            </div>
+            <div class="bg-row">
+              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-content">
+
+          <h2>Ready to Guess?</h2>
+          <p class="subtitle">
+            Timed word challenges · 3–5 letter modes · AI-generated words
+          </p>
+
+          <div class="action-buttons">
+            <button id="continue-game-btn" class="btn primary hidden">
+              Continue Game
+            </button>
+            <button id="new-game-btn" class="btn primary">New Game</button>
+            <button id="tutorial-btn" class="btn text">How to Play</button>
+          </div>
+
+          <div id="stats-preview" class="stats-preview hidden">
+            <!-- Dynamic Stats Here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Screen (Dashboard Layout) -->
+      <section id="leaderboard-screen" class="screen hidden dashboard-layout">
+        <div class="lb-container">
+          <!-- 1. Header & Stats Row -->
+          <div class="lb-header-section">
+            <div class="lb-title-row">
+              <h2>Leaderboard <span class="highlight">Pro</span></h2>
+              <button id="lb-back-btn" class="btn text">← Back to Menu</button>
+            </div>
+            
+            <div id="lb-stats-grid" class="lb-stats-grid">
+              <!-- Stat Card 1 -->
+              <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                  <span class="stat-label">Total Players</span>
+                  <span id="stat-total-players" class="stat-value">-</span>
+                </div>
+              </div>
+              <!-- Stat Card 2 -->
+              <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-info">
+                  <span class="stat-label">Competition</span>
+                  <span class="stat-value">Season 1</span>
+                </div>
+              </div>
+              <!-- Stat Card 3 -->
+              <div class="stat-card">
+                <div class="stat-icon">👾</div>
+                <div class="stat-info">
+                  <span class="stat-label">Your Global Rank</span>
+                  <span id="stat-user-rank" class="stat-value">-</span>
+                </div>
+              </div>
+              <!-- Stat Card 4 -->
+              <div class="stat-card highlight-card">
+                 <div class="stat-icon">⚡</div>
+                 <div class="stat-info">
+                   <span class="stat-label">Status</span>
+                   <span class="stat-value">Active</span>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Tabs & Podium -->
+          <div class="lb-controls-section">
+             <div class="lb-tabs">
+               <button class="lb-tab active" data-tab="global">Global</button>
+               <button class="lb-tab" data-tab="3">3 Letter</button>
+               <button class="lb-tab" data-tab="4">4 Letter</button>
+               <button class="lb-tab" data-tab="5">5 Letter</button>
+             </div>
+          </div>
+
+          <div id="lb-podium" class="lb-podium hidden">
+              <!-- Injected by JS: Rank 2, Rank 1, Rank 3 -->
+          </div>
+
+          <!-- 3. Main Data Table Panel -->
+          <div class="lb-panel">
+            <div class="lb-table-wrapper">
+              <table class="lb-table">
+                <thead>
+                  <tr>
+                    <th class="th-rank">Rank</th>
+                    <th class="th-player">Player</th>
+                    <th class="th-stat">Avg Score</th>
+                    <th class="th-stat">Best Score</th>
+                    <th class="th-stat desktop-only">Games</th>
+                    <th class="th-stat desktop-only">Wins</th>
+                  </tr>
+                </thead>
+                <tbody id="lb-list">
+                  <!-- Injected by JS -->
+                </tbody>
+              </table>
+              
+              <div id="lb-loading" class="lb-loading hidden">
+                 <div class="spinner"></div>
+                 <p>Fetching rankings...</p>
+              </div>
+              
+              <div id="lb-empty" class="lb-empty hidden">
+                <p>No rankings found for this mode yet.</p>
+              </div>
+              
+              <div id="lb-error" class="lb-error hidden">
+                <p>Unable to load leaderboard data.</p>
+                <button class="btn small" onclick="Leaderboard.retry()">Retry</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Difficulty Selection -->
+      <section id="difficulty-selection" class="screen hidden">
+        <h2>Select Difficulty</h2>
+        <div class="difficulty-cards">
+          <button class="diff-card" data-level="3">
+            <div class="diff-header">
+              <h3>EASY</h3>
+              <span class="badge easy">3 Letters</span>
+            </div>
+            <div class="diff-info">
+              <p>⏱️ 3 Minutes</p>
+              <p>🎯 6 Attempts</p>
+            </div>
+          </button>
+
+          <button class="diff-card" data-level="4">
+            <div class="diff-header">
+              <h3>MEDIUM</h3>
+              <span class="badge medium">4 Letters</span>
+            </div>
+            <div class="diff-info">
+              <p>⏱️ 4 Minutes</p>
+              <p>🎯 7 Attempts</p>
+            </div>
+          </button>
+
+          <button class="diff-card" data-level="5">
+            <div class="diff-header">
+              <h3>HARD</h3>
+              <span class="badge hard">5 Letters</span>
+            </div>
+            <div class="diff-info">
+              <p>⏱️ 5 Minutes</p>
+              <p>🎯 8 Attempts</p>
+            </div>
+          </button>
+        </div>
+        <button id="back-to-dash-btn" class="btn text">Back</button>
+      </section>
+
+      <!-- Game Board Area -->
+      <section id="game-board-area" class="screen hidden">
+        <div class="game-info-bar">
+          <div class="timer-container">
+            <span id="timer">00:00</span>
+          </div>
+          <div class="score-container">
+            Score: <span id="current-score">0</span>
+          </div>
+        </div>
+
+        <div id="grid-container" class="grid-container">
+          <!-- Grid generated by JS -->
+        </div>
+
+        <div id="keyboard-container" class="keyboard-container">
+          <!-- Keyboard generated by JS -->
+        </div>
+      </section>
+
+      <!-- Modals -->
+      <div id="modal-container" class="modal-backdrop hidden">
+        <!-- Pause Modal -->
+        <div id="pause-modal" class="modal hidden">
+          <h2>⏸️ Game Paused</h2>
+          <p class="pause-info">Take your time!</p>
+          <div class="modal-actions">
+            <button id="resume-btn" class="btn primary">Resume</button>
+            <button id="pause-home-btn" class="btn secondary">Back to Home</button>
+          </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="result-modal" class="modal hidden">
+          <h2 id="result-title">Victory!</h2>
+          <div id="result-word" class="highlight-word">WORD</div>
+          <div class="result-stats">
+            <div class="stat-item">
+              <span class="label">Attempts</span
+              ><span id="res-attempts" class="val">0/0</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Time</span
+              ><span id="res-time" class="val">00:00</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Score</span
+              ><span id="res-score" class="val">0</span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="play-again-btn" class="btn primary">Play Again</button>
+            <button id="home-btn" class="btn secondary">Menu</button>
+          </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+          <h2>Settings</h2>
+          <div class="setting-item">
+            <label for="api-key-input">Gemini API Key</label>
+            <input
+              type="password"
+              id="api-key-input"
+              placeholder="Paste your API Key here"
+            />
+          </div>
+          <div class="setting-item toggle">
+            <label>Sound Effects</label>
+            <input type="checkbox" id="sound-toggle" checked />
+          </div>
+          <div class="setting-item toggle">
+            <label>Dark Mode</label>
+            <input type="checkbox" id="theme-toggle" />
+          </div>
+          <div class="modal-actions">
+            <button id="reset-data-btn" class="btn secondary" style="border-color: var(--accent-error); color: var(--accent-error);">
+              Reset All Data
+            </button>
+            <button id="save-settings-btn" class="btn primary">
+              Save & Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievement Popup -->
+      <div id="achievement-popup" class="achievement-toast hidden">
+        <div class="ach-icon">🏆</div>
+        <div class="ach-text">
+          <h4 id="ach-title">Title</h4>
+          <p id="ach-desc">Description</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Supabase SDK (served locally) -->
+    <!-- Removed UMD script in favor of ESM in supabase-client.js -->
+    <script type="module" src="js/supabase-client.js"></script>
+    
+    <script src="js/intro.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/gemini-api.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/game.js"></script>
+  </body>
+</html>

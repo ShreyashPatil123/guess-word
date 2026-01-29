@@ -1,0 +1,362 @@
+/* =============================================
+   RESPONSIVE CSS - Mobile First Approach
+   =============================================
+   Breakpoints:
+   - Base: Mobile (< 768px)
+   - Tablet: min-width: 768px
+   - Desktop: min-width: 1024px
+   ============================================= */
+
+/* =============================================
+   MOBILE STYLES (Base - Default)
+   Touch-friendly spacing, vertical stacks
+   ============================================= */
+
+/* Small mobile screens */
+@media (max-width: 600px) {
+  .container {
+    padding: 10px;
+    max-width: 100%;
+  }
+
+  /* Adjust Grid for smaller screens */
+  .tile {
+    font-size: 1.5rem;
+  }
+
+  /* Header adjustments */
+  header {
+    padding: 10px 0;
+  }
+
+  .logo h1 {
+    font-size: 1.4rem;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+
+  /* Keyboard Size */
+  .kb-key {
+    height: 50px;
+    font-size: 0.85rem;
+  }
+
+  /* Difficulty Cards - vertical stack */
+  .difficulty-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Short height mobile screens */
+@media (max-height: 700px) {
+  .dashboard-content {
+    gap: 1rem;
+  }
+
+  .kb-key {
+    height: 40px;
+  }
+}
+
+/* =============================================
+   TABLET STYLES (min-width: 768px)
+   Increased spacing, slightly larger elements
+   ============================================= */
+@media (min-width: 768px) {
+  /* Body - ensure full viewport usage */
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Main Container - expand for tablet */
+  .container {
+    max-width: 700px;
+    padding: var(--gap-md);
+    min-height: auto;
+    height: auto;
+  }
+
+  /* Header - increased spacing */
+  header {
+    padding: var(--gap-md) 0;
+  }
+
+  .header-left,
+  .header-right {
+    display: flex;
+    gap: var(--gap-sm);
+  }
+
+  .logo h1 {
+    font-size: 2rem;
+  }
+
+  .icon-btn {
+    padding: 0.75rem;
+  }
+
+  /* Buttons - larger touch targets for tablet */
+  .btn {
+    padding: 14px 28px;
+    font-size: 1.05rem;
+  }
+
+  /* Dashboard - increased spacing */
+  .dashboard-content {
+    gap: var(--gap-lg);
+  }
+
+  .dashboard-content h2 {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+  }
+
+  .action-buttons {
+    min-width: 300px;
+    gap: var(--gap-md);
+  }
+
+  /* Difficulty Cards - larger cards with more padding */
+  .difficulty-cards {
+    grid-template-columns: 1fr;
+    gap: var(--gap-lg);
+    max-width: 450px;
+    margin: var(--gap-lg) auto;
+  }
+
+  .diff-card {
+    padding: var(--gap-lg);
+    border-radius: 16px;
+  }
+
+  .diff-card h3 {
+    font-size: 1.3rem;
+  }
+
+  .diff-info {
+    font-size: 1rem;
+  }
+
+  .badge {
+    padding: 4px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* Game Board - larger tiles */
+  .tile {
+    font-size: 2.2rem;
+  }
+
+  .grid-container {
+    gap: 8px;
+  }
+
+  .row {
+    gap: 8px;
+  }
+
+  /* Keyboard - larger keys */
+  .keyboard-container {
+    gap: 10px;
+    max-width: 550px;
+    margin: 0 auto;
+  }
+
+  .kb-row {
+    gap: 8px;
+  }
+
+  .kb-key {
+    height: 62px;
+    font-size: 1rem;
+    border-radius: 6px;
+  }
+
+  /* Modals - slightly larger */
+  .modal {
+    max-width: 450px;
+    padding: var(--gap-lg);
+  }
+
+  /* Back button - left aligned on larger screens */
+  #back-to-dash-btn {
+    align-self: flex-start;
+    margin-top: var(--gap-md);
+  }
+}
+
+/* =============================================
+   DESKTOP STYLES (min-width: 1024px)
+   Centered layout, max-width constraint,
+   enhanced spacing and typography
+   ============================================= */
+/* =============================================
+   DESKTOP STYLES (min-width: 1024px)
+   Fullscreen layout, horizontal expansion
+   ============================================= */
+@media (min-width: 1024px) {
+    /* Body - Full viewport */
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Align top, allow scrolling if needed */
+        padding: 0;
+        min-height: 100vh;
+        width: 100vw;
+        overflow-x: hidden;
+    }
+
+    /* Main Container - Full Screen Span
+       Overriding max-width constraint to allow full width */
+    .container {
+        max-width: 100%;
+        width: 100vw;
+        min-height: 100vh;
+        padding: var(--gap-lg);
+        background: var(--bg-primary); /* Ensures background fills screen */
+        border-radius: 0; /* Remove rounded corners for fullscreen */
+        box-shadow: none; /* Remove box shadow as it fills screen */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center content horizontally */
+    }
+
+    /* Header - Spans full width but content is constrained/padded */
+    header {
+        width: 100%;
+        max-width: 1200px; /* Limit inner content width */
+        margin: 0 auto;
+        padding: var(--gap-md) 0;
+    }
+
+    /* Screen Sections - Center and limit width for readability */
+    .screen {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex; /* Ensure flex behavior */
+        flex-direction: column;
+        align-items: center;
+        flex: 1; /* Allow to grow */
+        height: 100%; /* Ensure it fills container */
+        overflow: hidden; /* Prevent overflow from breaking layout */
+    }
+
+    /* Dashboard - enhanced typography */
+    .dashboard-content h2 {
+        font-size: 3rem;
+    }
+
+    .subtitle {
+        font-size: 1.5rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .action-buttons {
+        min-width: 400px;
+        gap: var(--gap-lg);
+    }
+
+    /* Difficulty Cards - Horizontal Layout for Desktop */
+    /* ... (unchanged) ... */
+
+    /* Game Board - optimized for strict vertical layout */
+    #game-board-area {
+        padding-top: var(--gap-lg);
+        max-width: 100%; /* Allow full width interaction */
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* Start from top */
+        align-items: center;
+        height: 100%; /* Fill available space */
+        overflow: hidden; /* No scrollbars */
+    }
+
+    .game-info-bar {
+        font-size: 1.5rem;
+        padding: 0 var(--gap-lg);
+        margin-bottom: var(--gap-md);
+        flex-shrink: 0; /* Never shrink */
+        width: 100%;
+        max-width: 800px;
+    }
+
+    /* Grid container must fit effectively between info bar and keyboard.
+       CRITICAL: Keep display: grid (set in main.css), DO NOT override to flex.
+       The JS sets grid-template-columns dynamically based on word length. */
+    .grid-container {
+        gap: 10px;
+        /* Constrain width so height (aspect ratio) doesn't overflow.
+           Using vh-based max-width to scale layout proportionally to screen height. */
+        max-width: min(400px, 45vh);
+        width: 100%;
+        margin: 0 auto;
+        flex: 1; /* Take available vertical space in flex parent */
+        min-height: 0; /* Allow shrinking if needed */
+        /* display: grid is inherited from main.css - DO NOT CHANGE */
+        /* grid-template-columns is set dynamically by JS */
+        align-content: center; /* Center rows vertically within grid */
+    }
+
+    .row {
+        gap: 10px;
+    }
+
+    .tile {
+        font-size: 2.5rem;
+        border-width: 3px;
+        /* Tiles are sized by grid column width and aspect-ratio */
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    /* Keyboard - strict bottom alignment */
+    .keyboard-container {
+        gap: 12px;
+        max-width: 800px;
+        width: 100%;
+        margin: 0 auto;
+        padding-top: var(--gap-md);
+        padding-bottom: var(--gap-lg);
+        flex-shrink: 0; /* Never shrink or be covered */
+        z-index: 10;
+        background: var(--bg-primary); /* Solid background as safeguard */
+    }
+
+    .kb-key {
+        height: 70px;
+        font-size: 1.25rem;
+        border-radius: 8px;
+    }
+
+    .kb-key:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Modals - centered overlay */
+    .modal {
+        max-width: 600px;
+        padding: 40px;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    #back-to-dash-btn {
+        margin-top: var(--gap-xl);
+        font-size: 1.2rem;
+    }
+}
