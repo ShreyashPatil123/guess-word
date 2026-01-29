@@ -489,8 +489,12 @@ app.post('/api/generate-word', async (req, res) => {
 // ==================================
 // START SERVER
 // ==================================
-app.listen(PORT, () => {
-    console.log(`\n🎮 Guess the Word Server`);
-    console.log(`   Running at http://localhost:${PORT}`);
-    console.log(`   Auth: Email + Password (OTP signup)\n`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`\n🎮 Guess the Word Server`);
+        console.log(`   Running at http://localhost:${PORT}`);
+        console.log(`   Auth: Email + Password (OTP signup)\n`);
+    });
+}
+
+module.exports = app;
