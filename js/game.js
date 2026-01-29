@@ -32,7 +32,7 @@ const Game = {
       const userId = Auth.currentUser ? Auth.currentUser.id : "guest";
       ProgressSystem.init(userId);
 
-      console.log(`Starting game with difficulty ${difficulty}...`);
+      // FIX: Removed debug log for production
 
       // Switch screen immediately
       UI.showScreen("game");
@@ -54,7 +54,7 @@ const Game = {
         this.startTimer();
         // Show pause button in header
         document.getElementById("pause-btn")?.classList.remove("hidden");
-        console.log("Target Word (Debug):", this.state.targetWord);
+        // FIX: Removed target word debug log (security)
       } catch (apiError) {
         console.error("API Error in Game.start:", apiError);
         // Fallback is handled in GeminiAPI, but if we get here, something major failed.
@@ -153,13 +153,13 @@ const Game = {
   pause() {
     if (!this.state.isPlaying || this.state.isPaused) return;
     this.state.isPaused = true;
-    console.log("Game paused");
+    // Game paused
   },
 
   resumeFromPause() {
     if (!this.state.isPaused) return;
     this.state.isPaused = false;
-    console.log("Game resumed");
+    // Game resumed
   },
 
   quitToHome() {
@@ -334,7 +334,7 @@ const Game = {
       targetWord: this.state.targetWord,
     });
 
-    console.log("Detailed Score Breakdown:", scoreData.breakdown);
+    // Score calculated
     return scoreData.wordScore;
   },
 
@@ -357,7 +357,7 @@ const Game = {
 
     // Accumulate Session Score
     this.state.sessionScore += score;
-    console.log(`Session Score: ${this.state.sessionScore} (+${score})`);
+    // Session score updated
 
     // Update Stats (Legacy Storage)
     const newStats = Storage.updateStats(win, this.state.difficulty, score);

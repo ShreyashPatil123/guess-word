@@ -25,8 +25,8 @@ const PORT = process.env.PORT || 8081;
 
 // ==================================
 // CONFIGURATION
-// ==================================
-const PASSWORD_HASH_ROUNDS = parseInt(process.env.PASSWORD_HASH_ROUNDS) || 10;
+// FIX: Reduced default from 10 to 8 for serverless CPU time limits (Vercel 10s max)
+const PASSWORD_HASH_ROUNDS = parseInt(process.env.PASSWORD_HASH_ROUNDS) || 8;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'default-secret-change-me';
 
 // Supabase client for user database
@@ -51,15 +51,17 @@ if (MOJOAUTH_API_KEY) {
     console.warn('⚠ MojoAuth API Key not configured');
 }
 
-// In-memory store for pending signups (production: use Redis)
-// Stores: { email, passwordHash, stateId, expiresAt }
+// SERVERLESS WARNING: In-memory state will NOT persist across invocations.
+// For production with multiple instances, migrate to Redis or database-backed sessions.
+// Current behavior: OTP verification may fail if verify request hits different instance.
 const pendingSignups = new Map();
 
 // ==================================
 // MIDDLEWARE
 // ==================================
 app.use(cors());
-app.use(express.json());
+// FIX: Explicit body size limit for security (prevents large payload attacks)
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(__dirname));
 
 // ==================================

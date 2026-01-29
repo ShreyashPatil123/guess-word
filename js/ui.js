@@ -83,14 +83,14 @@ const UI = {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('[NAV] Leaderboard clicked');
+                    // Leaderboard clicked
                     if (window.Leaderboard && Leaderboard.open) {
                         Leaderboard.open();
                     } else {
                         console.error("Leaderboard module missing!");
                     }
                 });
-                console.log("Leaderboard button attached.");
+                // Leaderboard button attached
             } else {
                 console.error("Leaderboard button not found in DOM.");
             }

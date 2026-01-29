@@ -66,7 +66,6 @@ const Intro = {
     },
 
     finishIntro() {
-        console.log("Intro finished");
         
         // Mark as seen
         localStorage.setItem('introSeen', 'true');

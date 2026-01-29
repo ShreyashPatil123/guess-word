@@ -171,7 +171,7 @@ const Leaderboard = {
             if (!window.supabase) throw new Error('Missing Supabase client');
 
             let query;
-            console.log(`[Leaderboard] Fetching tab: ${tab}`);
+            // Fetching tab data
             
             if (tab === 'global') {
                 query = window.supabase
@@ -190,7 +190,7 @@ const Leaderboard = {
 
             const { data, error } = await query;
             
-            console.log('[Leaderboard] Response:', { tab, dataLen: data?.length, error });
+            // Response received
 
             if (error) {
                 console.error('[Leaderboard] Supabase Error:', error);

@@ -86,7 +86,7 @@ const ProgressSystem = {
 
         // Save
         this.save();
-        console.log(`ProgressSystem: Saved result for ${modeKey}. New Avg: ${modeStats.avgScore}`);
+        // Stats saved
     },
 
     getStats() {
