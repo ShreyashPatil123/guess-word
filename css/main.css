@@ -1398,9 +1398,13 @@ video {
 #achievements-screen {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  height: auto;
+  min-height: 0;
   padding: var(--gap-md);
   overflow-y: auto;
+  position: relative;
+  background-color: var(--bg-primary);
 }
 
 .achievements-page {
@@ -1614,6 +1618,89 @@ video {
   font-weight: 700;
 }
 
+/* How to Unlock Section */
+.ach-page-howto {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ach-page-howto .howto-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ach-page-howto .howto-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.ach-page-card.unlocked .ach-page-howto {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+/* Hover Tooltip (for modal grid) */
+.ach-card {
+  position: relative;
+}
+
+.ach-card-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  max-width: 200px;
+  white-space: normal;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ach-card-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+.ach-card:hover .ach-card-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Category Filter - Extended List */
+.ach-filter-tabs {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ach-filter-tab[data-filter="strategy"] { --tab-color: #f59e0b; }
+.ach-filter-tab[data-filter="social"] { --tab-color: #ec4899; }
+.ach-filter-tab[data-filter="vocabulary"] { --tab-color: #8b5cf6; }
+.ach-filter-tab[data-filter="persistence"] { --tab-color: #14b8a6; }
+.ach-filter-tab[data-filter="secret"] { --tab-color: #6366f1; }
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .achievements-stats-grid {
@@ -1623,6 +1710,10 @@ video {
   .achievements-title-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .ach-card-tooltip {
+    display: none;
   }
 }
 
@@ -1644,4 +1735,13 @@ video {
     padding: 8px 14px;
     font-size: 0.8rem;
   }
+  
+  .ach-page-howto {
+    padding: 8px 10px;
+  }
+  
+  .ach-page-howto .howto-text {
+    font-size: 0.8rem;
+  }
 }
+

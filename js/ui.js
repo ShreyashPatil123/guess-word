@@ -19,7 +19,7 @@ window.UI = {
             stats: document.getElementById('stats-btn'),
             tutorial: document.getElementById('tutorial-btn'), // Linked
             settings: document.getElementById('settings-btn'),
-            achievements: document.getElementById('achievements-btn'),
+            // achievements: moved to runtime binding in setupEventListeners()
             backToDash: document.getElementById('back-to-dash-btn'),
             playAgain: document.getElementById('play-again-btn'),
             home: document.getElementById('home-btn'),
@@ -139,10 +139,20 @@ window.UI = {
              if (window.Settings) Settings.open();
         });
 
-        // Achievements - Opens dedicated page
-        this.elements.buttons.achievements?.addEventListener('click', () => {
-             if (window.Achievements) Achievements.openPage();
-        });
+        // Achievements - Opens dedicated page (Runtime DOM binding to avoid parse-time null)
+        const achievementsBtn = document.getElementById('achievements-btn');
+        if (achievementsBtn) {
+            achievementsBtn.addEventListener('click', () => {
+                console.log('[UI] Achievements button clicked!');
+                if (window.Achievements) {
+                    Achievements.openPage();
+                } else {
+                    console.error('[UI] Achievements module not loaded');
+                }
+            });
+        } else {
+            console.error('[UI] Achievements button not found in DOM');
+        }
 
         // Close Settings (Delegated to Settings.js, but keeping basic close for safety)
         document.getElementById('close-settings-btn')?.addEventListener('click', () => {
