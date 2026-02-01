@@ -139,6 +139,11 @@ window.UI = {
              if (window.Settings) Settings.open();
         });
 
+        // Achievements - Opens dedicated page
+        this.elements.buttons.achievements?.addEventListener('click', () => {
+             if (window.Achievements) Achievements.openPage();
+        });
+
         // Close Settings (Delegated to Settings.js, but keeping basic close for safety)
         document.getElementById('close-settings-btn')?.addEventListener('click', () => {
              this.closeModals();
@@ -369,7 +374,7 @@ window.UI = {
         const rows = [
             ['Q','W','E','R','T','Y','U','I','O','P'],
             ['A','S','D','F','G','H','J','K','L'],
-            ['ENTER','Z','X','C','V','B','N','M','BACKSPACE']
+            ['BACKSPACE','Z','X','C','V','B','N','M','ENTER']
         ];
         rows.forEach(rowKeys => {
             const rowDiv = document.createElement('div');
