@@ -2,12 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Enhanced viewport for mobile -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    
+    <!-- iOS specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GuessAI" />
+    
+    <!-- Android specific -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#6aaa64" />
+    
+    <!-- Prevent auto-zoom on input focus (iOS) -->
+    <meta name="format-detection" content="telephone=no" />
+    
     <title>Guess the Word | AI-Powered Game</title>
+    
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <link rel="stylesheet" href="css/responsive.css" />
     <link rel="stylesheet" href="css/leaderboard.css" />
+    <link rel="stylesheet" href="css/settings.css" />
+    
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -27,6 +50,26 @@
       </button>
     </div>
 
+    <!-- Demo Setup Modal (Moved to Global Scope) -->
+    <div id="demo-modal-container" class="modal-backdrop hidden" style="z-index: 2000;">
+        <div id="demo-modal" class="modal">
+            <div class="modal-content small-modal">
+                <div class="modal-header">
+                    <h2>Start Demo</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Enter a display name to start playing immediately.</p>
+                    <div class="auth-input-group">
+                        <label>Display Name</label>
+                        <input type="text" id="demo-name" placeholder="e.g. GuestPlayer" maxlength="15">
+                    </div>
+                    <button id="start-demo-btn" class="btn primary glow">Start Playing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="auth-overlay hidden">
       <div class="auth-modal">
@@ -40,16 +83,20 @@
           <button id="auth-login-tab" class="auth-tab active">Login</button>
           <button id="auth-signup-tab" class="auth-tab">Sign Up</button>
         </div>
+        
+        <!-- Demo Button -->
+        <div class="auth-demo-container">
+            <button id="auth-demo-btn" class="btn secondary small">Continue as Demo</button>
+        </div>
 
         <!-- LOGIN FORM (Email + Password only) -->
         <div id="auth-login-form" class="auth-form">
           <div class="auth-input-group">
-            <label for="login-email">Email</label>
+            <label for="login-identifier">Email or Username</label>
             <input
-              type="email"
-              id="login-email"
-              placeholder="you@example.com"
-              autocomplete="email"
+              type="text"
+              id="login-identifier"
+              placeholder="Enter email or username"
             />
           </div>
           <div class="auth-input-group">
@@ -61,13 +108,20 @@
               autocomplete="current-password"
             />
           </div>
-          <button id="login-btn" class="btn primary auth-btn">
-            Login
-          </button>
+          <button id="login-btn" class="btn primary auth-btn">Login</button>
         </div>
 
         <!-- SIGNUP FORM - Step 1 (Email + Password + Confirm) -->
         <div id="auth-signup-form" class="auth-form hidden">
+          <div class="auth-input-group">
+            <label for="signup-username">Username</label>
+            <input
+              type="text"
+              id="signup-username"
+              placeholder="Choose a unique username"
+              maxlength="20"
+            />
+          </div>
           <div class="auth-input-group">
             <label for="signup-email">Email</label>
             <input
@@ -95,7 +149,9 @@
               placeholder="Re-enter password"
               autocomplete="new-password"
             />
-            <p id="password-mismatch" class="input-error hidden">Passwords do not match</p>
+            <p id="password-mismatch" class="input-error hidden">
+              Passwords do not match
+            </p>
           </div>
           <button id="signup-btn" class="btn primary auth-btn" disabled>
             Create Account
@@ -145,7 +201,11 @@
               <path d="M3 12h18M3 6h18M3 18h18" />
             </svg>
           </button>
-          <button id="leaderboard-btn" class="icon-btn" aria-label="Leaderboard">
+          <button
+            id="leaderboard-btn"
+            class="icon-btn"
+            aria-label="Leaderboard"
+          >
             <svg
               width="24"
               height="24"
@@ -163,7 +223,9 @@
           <h1>GUESS<span class="highlight">AI</span></h1>
         </div>
 
-        <div class="header-right">
+        <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
+          <!-- V2: Global creator credit -->
+          <span class="header-credit" style="font-size: 11px; color: #888; opacity: 0.55; margin-right: 8px; font-weight: normal; white-space: nowrap;">Created by Shreyash Patil &amp; Parag Yewale</span>
           <span id="user-display" class="user-display hidden"></span>
           <button
             id="logout-btn"
@@ -217,7 +279,12 @@
             </svg>
           </button>
           <!-- Pause Button (visible during gameplay) -->
-          <button id="pause-btn" class="icon-btn hidden" aria-label="Pause Game" title="Pause">
+          <button
+            id="pause-btn"
+            class="icon-btn hidden"
+            aria-label="Pause Game"
+            title="Pause"
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="4" width="4" height="16" rx="1" />
               <rect x="14" y="4" width="4" height="16" rx="1" />
@@ -232,25 +299,44 @@
         <div class="home-bg-grid" aria-hidden="true">
           <div class="bg-grid">
             <div class="bg-row">
-              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
             </div>
             <div class="bg-row">
-              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
             </div>
             <div class="bg-row">
-              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
             </div>
             <div class="bg-row">
-              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
             </div>
             <div class="bg-row">
-              <div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div><div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
+              <div class="bg-tile"></div>
             </div>
           </div>
         </div>
 
         <div class="dashboard-content">
-
           <h2>Ready to Guess?</h2>
           <p class="subtitle">
             Timed word challenges · 3–5 letter modes · AI-generated words
@@ -279,7 +365,7 @@
               <h2>Leaderboard <span class="highlight">Pro</span></h2>
               <button id="lb-back-btn" class="btn text">← Back to Menu</button>
             </div>
-            
+
             <div id="lb-stats-grid" class="lb-stats-grid">
               <!-- Stat Card 1 -->
               <div class="stat-card">
@@ -306,28 +392,28 @@
                 </div>
               </div>
               <!-- Stat Card 4 -->
-              <div class="stat-card highlight-card">
-                 <div class="stat-icon">⚡</div>
-                 <div class="stat-info">
-                   <span class="stat-label">Status</span>
-                   <span class="stat-value">Active</span>
-                 </div>
+              <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-info">
+                  <span class="stat-label">Status</span>
+                  <span class="stat-value">Active</span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 2. Tabs & Podium -->
           <div class="lb-controls-section">
-             <div class="lb-tabs">
-               <button class="lb-tab active" data-tab="global">Global</button>
-               <button class="lb-tab" data-tab="3">3 Letter</button>
-               <button class="lb-tab" data-tab="4">4 Letter</button>
-               <button class="lb-tab" data-tab="5">5 Letter</button>
-             </div>
+            <div class="lb-tabs">
+              <button class="lb-tab active" data-tab="global">Global</button>
+              <button class="lb-tab" data-tab="3">3 Letter</button>
+              <button class="lb-tab" data-tab="4">4 Letter</button>
+              <button class="lb-tab" data-tab="5">5 Letter</button>
+            </div>
           </div>
 
           <div id="lb-podium" class="lb-podium hidden">
-              <!-- Injected by JS: Rank 2, Rank 1, Rank 3 -->
+            <!-- Injected by JS: Rank 2, Rank 1, Rank 3 -->
           </div>
 
           <!-- 3. Main Data Table Panel -->
@@ -348,19 +434,21 @@
                   <!-- Injected by JS -->
                 </tbody>
               </table>
-              
+
               <div id="lb-loading" class="lb-loading hidden">
-                 <div class="spinner"></div>
-                 <p>Fetching rankings...</p>
+                <div class="spinner"></div>
+                <p>Fetching rankings...</p>
               </div>
-              
+
               <div id="lb-empty" class="lb-empty hidden">
                 <p>No rankings found for this mode yet.</p>
               </div>
-              
+
               <div id="lb-error" class="lb-error hidden">
                 <p>Unable to load leaderboard data.</p>
-                <button class="btn small" onclick="Leaderboard.retry()">Retry</button>
+                <button class="btn small" onclick="Leaderboard.retry()">
+                  Retry
+                </button>
               </div>
             </div>
           </div>
@@ -435,7 +523,9 @@
           <p class="pause-info">Take your time!</p>
           <div class="modal-actions">
             <button id="resume-btn" class="btn primary">Resume</button>
-            <button id="pause-home-btn" class="btn secondary">Back to Home</button>
+            <button id="pause-home-btn" class="btn secondary">
+              Back to Home
+            </button>
           </div>
         </div>
 
@@ -463,34 +553,266 @@
           </div>
         </div>
 
-        <!-- Settings Modal -->
+
+
+
+    <!-- Additional Modals -->
+        <!-- Tutorial Modal ("How to Play") -->
+        <div id="tutorial-modal" class="modal hidden">
+            <h2>How to Play</h2>
+            
+            <div class="modal-content-scroll settings-content"> 
+                <!-- Reusing settings-content for similar padding/layout if appropriate, or adding custom class -->
+                
+                <div class="tutorial-section">
+                    <h3>What Is This Game?</h3>
+                    <p>GuessAI is a word guessing game where you try to find the hidden secret word before time runs out.</p>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>How to Start Playing</h3>
+                    <ul>
+                        <li>Click <strong>New Game</strong> on the dashboard.</li>
+                        <li>Choose a word length (3, 4, or 5 letters).</li>
+                        <li>The timer starts immediately!</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Game Modes</h3>
+                    <ul>
+                        <li><strong>3 Letters</strong> (Easy): Short words, 3 minutes.</li>
+                        <li><strong>4 Letters</strong> (Medium): Standard challenge, 4 minutes.</li>
+                        <li><strong>5 Letters</strong> (Hard): Longer words, 5 minutes. Harder modes earn more points!</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>How to Enter a Guess</h3>
+                    <ul>
+                        <li>Type letters using your keyboard or the on-screen keys.</li>
+                        <li>Press <span class="key-badge">ENTER</span> to submit your guess.</li>
+                        <li>Use <span class="key-badge">BACKSPACE</span> to delete.</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Color Meanings</h3>
+                    <p>Colors guide you to the answer:</p>
+                    <div class="color-demo-row">
+                        <div class="demo-tile correct">A</div>
+                        <span><strong>Green</strong>: Right letter, Right place.</span>
+                    </div>
+                    <div class="color-demo-row">
+                        <div class="demo-tile present">B</div>
+                        <span><strong>Yellow</strong>: Right letter, Wrong place.</span>
+                    </div>
+                    <div class="color-demo-row">
+                        <div class="demo-tile absent">C</div>
+                        <span><strong>Gray</strong>: Letter is not in the word.</span>
+                    </div>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Time Rules</h3>
+                    <ul>
+                        <li>Timer starts instantly.</li>
+                        <li><strong>Yellow Timer</strong>: Time is running low.</li>
+                        <li><strong>Red Timer</strong>: Almost out of time!</li>
+                        <li>If time hits 0:00, it's <strong>Game Over</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Winning & Losing</h3>
+                    <ul>
+                        <li><strong>Win</strong>: Guess the full word correctly.</li>
+                        <li><strong>Lose</strong>: Run out of attempts OR run out of time.</li>
+                        <li><em>Tip: Losing still counts as a game played!</em></li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Scoring</h3>
+                    <ul>
+                        <li>Fewer tries = More points.</li>
+                        <li>Faster solve = Bonus points.</li>
+                        <li>Even if you lose, finding correct letters gives you a small score!</li>
+                    </ul>
+                </div>
+
+                 <div class="tutorial-section">
+                    <h3>Progress & Stats</h3>
+                    <ul>
+                        <li><strong>Games Played</strong>: Total matches started.</li>
+                        <li><strong>Avg Score</strong>: Shows how well you usually play.</li>
+                    </ul>
+                </div>
+
+                <div class="tutorial-section">
+                    <h3>Account Types</h3>
+                    <ul>
+                        <li><strong>Demo User</strong>: Progress saved ONLY on this device. Clearing cache wipes stats.</li>
+                        <li><strong>Registered</strong>: Save progress online and climb the global leaderboard permanently.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn primary close-modal-btn">Got it!</button>
+            </div>
+        </div>
+
         <div id="settings-modal" class="modal hidden">
           <h2>Settings</h2>
-          <div class="setting-item">
-            <label for="api-key-input">Gemini API Key</label>
-            <input
-              type="password"
-              id="api-key-input"
-              placeholder="Paste your API Key here"
-            />
+          
+          <div class="settings-tabs">
+            <button class="settings-tab active" data-tab="account">Account</button>
+            <button class="settings-tab" data-tab="appearance">Appearance</button>
+            <button class="settings-tab" data-tab="audio">Audio</button>
           </div>
-          <div class="setting-item toggle">
-            <label>Sound Effects</label>
-            <input type="checkbox" id="sound-toggle" checked />
+
+          <div class="settings-content">
+            <!-- Account Panel -->
+            <div id="panel-account" class="settings-panel active">
+              <div class="settings-section">
+                <span class="section-title">Profile</span>
+                <div class="avatar-section">
+                   <img id="settings-avatar" src="assets/default-avatar.png" class="avatar-preview" onerror="this.src='https://ui-avatars.com/api/?background=random'">
+                      <div class="avatar-actions">
+                          <label id="upload-avatar-btn" class="btn primary small">
+                              Change Photo
+                              <input type="file" id="avatar-input" accept="image/*" hidden>
+                          </label>
+                          <button id="remove-avatar-btn" class="btn text small danger hidden" style="width: fit-content; align-self: flex-start;">Remove</button>
+                          <span class="setting-desc">Max size 1MB</span>
+                      </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <label class="setting-row">
+                  <div class="setting-label">
+                     <span class="setting-name">Username</span>
+                     <span class="setting-desc">Visible on leaderboards (<span id="username-char-count">0</span>/20)</span>
+                  </div>
+                  <input type="text" id="settings-username" class="setting-input" maxlength="20">
+                  <button id="save-username-btn" class="btn small primary" disabled>Save</button>
+                </label>
+              </div>
+
+              <div class="settings-section">
+                 <label class="setting-row">
+                    <div class="setting-label">
+                        <span class="setting-name">Email</span>
+                    </div>
+                    <input type="text" id="settings-email" class="setting-input plain-text" readonly>
+                </label>
+              </div>
+
+              <div class="settings-section danger-zone">
+                <span class="section-title">Danger Zone</span>
+                <div class="setting-row">
+                     <div class="setting-label">
+                        <span class="setting-name">Sign Out</span>
+                    </div>
+                    <button id="btn-signout" class="btn secondary small">Sign Out</button>
+                </div>
+                <div class="setting-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(220,38,38,0.2)">
+                     <div class="setting-label">
+                        <span class="setting-name" style="color:red">Delete Account</span>
+                        <span class="setting-desc">Permanently remove all data</span>
+                    </div>
+                    <button id="btn-delete-account" class="btn error small" style="border-color:red; color:red">Delete</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Appearance Panel -->
+            <div id="panel-appearance" class="settings-panel">
+               <div class="settings-section">
+                  <span class="section-title">Visuals</span>
+                  <div class="setting-row">
+                      <div class="setting-label">
+                          <span class="setting-name">Dark Mode</span>
+                          <span class="setting-desc">Easier on the eyes</span>
+                      </div>
+                      <div class="setting-item toggle">
+                          <input type="checkbox" id="theme-toggle">
+                      </div>
+                  </div>
+               </div>
+
+               <div class="settings-section">
+                  <span class="section-title">Accessibility &amp; Preference</span>
+                  <div class="setting-row">
+                      <div class="setting-label">
+                          <span class="setting-name">Reduced Motion</span>
+                          <span class="setting-desc">Minimize animations</span>
+                      </div>
+                      <div class="setting-item toggle">
+                          <input type="checkbox" id="reduce-motion-toggle">
+                      </div>
+                  </div>
+                  <div class="setting-row">
+                      <div class="setting-label">
+                          <span class="setting-name">Compact Mode</span>
+                          <span class="setting-desc">Denser layout</span>
+                      </div>
+                      <div class="setting-item toggle">
+                          <input type="checkbox" id="compact-mode-toggle">
+                      </div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Audio Panel -->
+            <div id="panel-audio" class="settings-panel">
+               <div class="settings-section">
+                  <span class="section-title">Volume</span>
+                  <div class="setting-row" style="flex-wrap: wrap;">
+                      <div class="setting-label" style="width: 100%">
+                         <span class="setting-name">Master Volume</span>
+                      </div>
+                      <div class="volume-slider-container">
+                          <span>🔈</span>
+                          <input type="range" id="master-volume" class="volume-slider" min="0" max="100" value="100">
+                          <span>🔊</span>
+                      </div>
+                  </div>
+               </div>
+
+               <div class="settings-section">
+                  <span class="section-title">Controls</span>
+                  <div class="setting-row">
+                      <div class="setting-label">
+                          <span class="setting-name">Sound Effects</span>
+                          <span class="setting-desc">Game sounds</span>
+                      </div>
+                      <div class="setting-item toggle">
+                          <input type="checkbox" id="sfx-toggle" checked>
+                      </div>
+                  </div>
+                  <div class="setting-row">
+                      <div class="setting-label">
+                          <span class="setting-name">Mute in Background</span>
+                          <span class="setting-desc">Silence when tab is hidden</span>
+                      </div>
+                      <div class="setting-item toggle">
+                          <input type="checkbox" id="bg-mute-toggle" checked>
+                      </div>
+                  </div>
+               </div>
+            </div>
           </div>
-          <div class="setting-item toggle">
-            <label>Dark Mode</label>
-            <input type="checkbox" id="theme-toggle" />
-          </div>
-          <div class="modal-actions">
-            <button id="reset-data-btn" class="btn secondary" style="border-color: var(--accent-error); color: var(--accent-error);">
-              Reset All Data
-            </button>
-            <button id="save-settings-btn" class="btn primary">
-              Save & Close
-            </button>
+
+          <div class="settings-footer">
+            <div class="settings-attribution">Created by Shreyash Patil & Parag Yewale</div>
+            <button id="reset-data-btn" class="btn text danger">Reset Data</button>
+            <button id="close-settings-btn" class="btn primary">Done</button>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- Achievement Popup -->
@@ -507,7 +829,7 @@
     <!-- Supabase SDK (served locally) -->
     <!-- Removed UMD script in favor of ESM in supabase-client.js -->
     <script type="module" src="js/supabase-client.js"></script>
-    
+
     <script src="js/intro.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/storage.js"></script>
@@ -515,6 +837,7 @@
     <script src="js/achievements.js"></script>
     <script src="js/gemini-api.js"></script>
     <script src="js/leaderboard.js"></script>
+    <script src="js/settings.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/scoring.js"></script>
     <script src="js/progress.js"></script>

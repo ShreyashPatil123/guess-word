@@ -1,7 +1,8 @@
-const UI = {
+window.UI = {
     // Device detection
     isTouchDevice: false,
     shownDesktopHint: false,
+    lastFocusedElement: null, // For accessibility management
 
     elements: {
         container: document.getElementById('game-container'),
@@ -12,10 +13,11 @@ const UI = {
             game: document.getElementById('game-board-area'),
             leaderboard: document.getElementById('leaderboard-screen')
         },
-        buttons: {
+            buttons: {
             continue: document.getElementById('continue-game-btn'),
             newGame: document.getElementById('new-game-btn'),
             stats: document.getElementById('stats-btn'),
+            tutorial: document.getElementById('tutorial-btn'), // Linked
             settings: document.getElementById('settings-btn'),
             achievements: document.getElementById('achievements-btn'),
             backToDash: document.getElementById('back-to-dash-btn'),
@@ -35,7 +37,8 @@ const UI = {
             backdrop: document.getElementById('modal-container'),
             result: document.getElementById('result-modal'),
             settings: document.getElementById('settings-modal'),
-            pause: document.getElementById('pause-modal')
+            pause: document.getElementById('pause-modal'),
+            tutorial: document.getElementById('tutorial-modal')
         },
         inputs: {
             apiKey: document.getElementById('api-key-input'),
@@ -45,11 +48,30 @@ const UI = {
     },
 
     init() {
+        // Migrate existing users to word history system (for word repetition prevention)
+        Storage.migrateToWordHistory();
+        
+        // Log word history stats on startup (debugging)
+        const wordStats = Storage.getWordHistoryStats();
+        console.log('[App] Word History:', wordStats);
+
         // Detect touch device (capability-based, not UA sniffing)
         this.isTouchDevice = ('ontouchstart' in window) || 
                              (navigator.maxTouchPoints > 0) || 
                              (window.matchMedia('(pointer: coarse)').matches);
         
+        // Mobile Input Visibility Handler
+        if (this.isTouchDevice) {
+             document.addEventListener('focus', (e) => {
+                 if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+                     // Wait for keyboard animation
+                     setTimeout(() => {
+                         e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                     }, 300);
+                 }
+             }, true); // Capture phase
+        }
+
         this.setupEventListeners();
         this.setupRouter();
         this.applyTheme(Storage.getSettings().darkMode);
@@ -107,9 +129,21 @@ const UI = {
         window.addEventListener('popstate', () => {
              if (location.hash === '#/leaderboard' || location.hash === '#leaderboard') { // Handle both
                  if (window.Leaderboard) Leaderboard.open();
+             } else {
+                 this.showScreen('dashboard');
              }
         });
         
+        // Settings
+        this.elements.buttons.settings.addEventListener('click', () => {
+             if (window.Settings) Settings.open();
+        });
+
+        // Close Settings (Delegated to Settings.js, but keeping basic close for safety)
+        document.getElementById('close-settings-btn')?.addEventListener('click', () => {
+             this.closeModals();
+        });
+
         // Difficulty Selection
         document.querySelectorAll('.diff-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -119,25 +153,6 @@ const UI = {
         });
 
         // Modals
-        buttons.settings?.addEventListener('click', () => this.showModal('settings'));
-        buttons.saveSettings?.addEventListener('click', () => {
-             const newSettings = {
-                 apiKey: inputs.apiKey?.value || '',
-                 soundEnabled: inputs.sound?.checked ?? true,
-                 darkMode: inputs.theme?.checked ?? false
-             };
-             Storage.saveSettings(newSettings);
-             AudioController.toggle(newSettings.soundEnabled);
-             this.applyTheme(newSettings.darkMode);
-             this.closeModals();
-        });
-
-        buttons.resetData?.addEventListener('click', () => {
-            if (confirm("Reset everything? This will log you out and show the intro again.")) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        });
         
         buttons.home?.addEventListener('click', () => {
             this.closeModals();
@@ -166,11 +181,29 @@ const UI = {
             Game.quitToHome();
         });
 
-        // Escape key to resume if paused
+        // Tutorial Logic
+        buttons.tutorial?.addEventListener('click', () => {
+            this.showModal('tutorial');
+        });
+
+        // Generic Close Buttons (for Tutorial and others using class)
+        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.closeModals());
+        });
+
+        // Escape Key: Generic Modal Handler
+        // (Prioritize Pause resume if paused, otherwise just close)
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && Game.state.isPaused) {
-                this.closeModals();
-                Game.resumeFromPause();
+            if (e.key === 'Escape') {
+                if (!this.elements.modals.backdrop.classList.contains('hidden')) {
+                    this.closeModals();
+                    // If game was paused, resume it? 
+                    // The existing logic was: if paused, escape -> close & resume.
+                    // We should preserve that behavior.
+                    if (Game.state.isPaused) {
+                         Game.resumeFromPause();
+                    }
+                }
             }
         });
 
@@ -263,21 +296,28 @@ const UI = {
     },
 
     showModal(name) {
+        this.lastFocusedElement = document.activeElement; // Save focus
         this.elements.modals.backdrop.classList.remove('hidden');
         Object.values(this.elements.modals).filter(el => el !== this.elements.modals.backdrop).forEach(el => el.classList.add('hidden'));
-        this.elements.modals[name].classList.remove('hidden');
+        
+        const modal = this.elements.modals[name];
+        modal.classList.remove('hidden');
 
-        // Pre-fill settings if settings modal
-        if (name === 'settings') {
-            const settings = Storage.getSettings();
-            this.elements.inputs.apiKey.value = settings.apiKey;
-            this.elements.inputs.sound.checked = settings.soundEnabled;
-            this.elements.inputs.theme.checked = settings.darkMode;
+        // Accessibility: Move focus to first interactable
+        const focusable = modal.querySelector('button, input, [href], [tabindex]:not([tabindex="-1"])');
+        if (focusable) {
+            // Small timeout to ensure visibility transition doesn't block focus
+            setTimeout(() => focusable.focus(), 50);
         }
     },
 
     closeModals() {
         this.elements.modals.backdrop.classList.add('hidden');
+        // Restore focus
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+            this.lastFocusedElement = null; // Clear it
+        }
     },
 
     applyTheme(isDark) {

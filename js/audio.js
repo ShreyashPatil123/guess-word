@@ -2,28 +2,35 @@ class AudioManager {
     constructor() {
         this.sounds = {};
         this.enabled = true;
+        this.volume = 1.0;
+        this.systemMuted = false;
         
         // In a real production app, we would load these from files.
         // For this standalone demo, we can use simple synthesized beeps or placeholders
         // if files aren't physically present.
-        this.synth = window.speechSynthesis; // Can be used for speaking words too if needed
+        this.synth = window.speechSynthesis; 
     }
 
     init() {
-        // Preload sounds if they existed
-        // this.loadSound('pop', 'assets/sounds/pop.mp3');
-        // ...
-        
         const settings = Storage.getSettings();
         this.enabled = settings.soundEnabled;
+        this.volume = (settings.masterVolume !== undefined ? settings.masterVolume : 100) / 100;
     }
 
     toggle(state) {
         this.enabled = state;
     }
 
+    setVolume(val) { // 0-100
+        this.volume = val / 100;
+    }
+
+    muteAll(shouldMute) {
+        this.systemMuted = shouldMute;
+    }
+
     play(soundName) {
-        if (!this.enabled) return;
+        if (!this.enabled || this.systemMuted) return;
 
         // Simple oscillator fallbacks for "no-asset" demo
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -37,13 +44,14 @@ class AudioManager {
         gain.connect(ctx.destination);
 
         const now = ctx.currentTime;
+        const vol = this.volume; // Apply master volume
 
         switch (soundName) {
             case 'click':
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.setValueAtTime(0.1 * vol, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.1);
                 osc.start(now);
                 osc.stop(now + 0.1);
@@ -52,7 +60,7 @@ class AudioManager {
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(600, now);
                 osc.frequency.linearRampToValueAtTime(1200, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.setValueAtTime(0.1 * vol, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.start(now);
                 osc.stop(now + 0.3);
@@ -61,7 +69,7 @@ class AudioManager {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(200, now);
                 osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.setValueAtTime(0.1 * vol, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.2);
                 osc.start(now);
                 osc.stop(now + 0.2);
@@ -74,7 +82,7 @@ class AudioManager {
                     o.connect(g);
                     g.connect(ctx.destination);
                     o.frequency.value = freq;
-                    g.gain.value = 0.1;
+                    g.gain.value = 0.1 * vol;
                     g.gain.linearRampToValueAtTime(0, now + 0.2 + (i*0.1));
                     o.start(now + (i*0.1));
                     o.stop(now + 0.5 + (i*0.1));
@@ -84,7 +92,7 @@ class AudioManager {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(300, now);
                 osc.frequency.linearRampToValueAtTime(100, now + 0.5);
-                gain.gain.value = 0.2;
+                gain.gain.value = 0.2 * vol;
                 gain.gain.linearRampToValueAtTime(0, now + 0.5);
                 osc.start(now);
                 osc.stop(now + 0.5);
@@ -93,4 +101,4 @@ class AudioManager {
     }
 }
 
-const AudioController = new AudioManager();
+window.AudioController = new AudioManager();

@@ -11,7 +11,7 @@
  * - OTP verification is server-side only
  */
 
-const Auth = {
+window.Auth = {
     // State
     currentUser: null,
     sessionToken: null,
@@ -34,12 +34,13 @@ const Auth = {
             
             // Login form
             loginForm: document.getElementById('auth-login-form'),
-            loginEmail: document.getElementById('login-email'),
+            loginIdentifier: document.getElementById('login-identifier'), // Changed from loginEmail
             loginPassword: document.getElementById('login-password'),
             loginBtn: document.getElementById('login-btn'),
             
             // Signup form - step 1
             signupForm: document.getElementById('auth-signup-form'),
+            signupUsername: document.getElementById('signup-username'), // Added
             signupEmail: document.getElementById('signup-email'),
             signupPassword: document.getElementById('signup-password'),
             signupConfirm: document.getElementById('signup-confirm'),
@@ -55,7 +56,14 @@ const Auth = {
             // Shared
             errorMsg: document.getElementById('auth-error'),
             userDisplay: document.getElementById('user-display'),
-            logoutBtn: document.getElementById('logout-btn')
+            logoutBtn: document.getElementById('logout-btn'),
+
+            // Demo
+            demoBtn: document.getElementById('auth-demo-btn'),
+            demoModal: document.getElementById('demo-modal'),
+            demoStartBtn: document.getElementById('start-demo-btn'),
+            demoNameInput: document.getElementById('demo-name'),
+            closeDemoBtn: document.querySelector('#demo-modal .close-modal')
         };
 
         this.setupListeners();
@@ -85,7 +93,7 @@ const Auth = {
 
         // Login form
         this.elements.loginBtn?.addEventListener('click', () => this.handleLogin());
-        this.elements.loginEmail?.addEventListener('keypress', (e) => {
+        this.elements.loginIdentifier?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.elements.loginPassword?.focus();
         });
         this.elements.loginPassword?.addEventListener('keypress', (e) => {
@@ -109,6 +117,44 @@ const Auth = {
 
         // Logout
         this.elements.logoutBtn?.addEventListener('click', () => this.logout());
+
+        // Demo Flow
+        console.log('Setup Listeners: Checking Demo Button', this.elements.demoBtn);
+        
+        if (this.elements.demoBtn) {
+            this.elements.demoBtn.addEventListener('click', (e) => {
+                console.log('Demo Button Clicked');
+                e.preventDefault(); // Just in case
+                
+                // Show dedicated demo backdrop
+                const backdrop = document.getElementById('demo-modal-container');
+                if (backdrop) {
+                    backdrop.classList.remove('hidden');
+                    // z-index is set inline to 2000, which is > auth-overlay (1500)
+                } else {
+                    console.error('Demo Modal Backdrop not found!');
+                }
+                
+                // Show Modal itself (it's inside the backdrop now)
+                if (this.elements.demoModal) {
+                    this.elements.demoModal.classList.remove('hidden');
+                    this.elements.demoNameInput?.focus();
+                }
+            });
+        }
+
+        this.elements.closeDemoBtn?.addEventListener('click', () => {
+             const backdrop = document.getElementById('demo-modal-container');
+             if (backdrop) backdrop.classList.add('hidden');
+             // Also hide the modal just in case logic separated later
+             this.elements.demoModal?.classList.add('hidden');
+        });
+
+        this.elements.demoStartBtn?.addEventListener('click', () => this.handleDemoLogin());
+        
+        this.elements.demoNameInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleDemoLogin();
+        });
     },
 
     /**
@@ -125,14 +171,14 @@ const Auth = {
             this.elements.loginForm?.classList.remove('hidden');
             this.elements.signupForm?.classList.add('hidden');
             this.elements.otpForm?.classList.add('hidden');
-            this.elements.loginEmail?.focus();
+            this.elements.loginIdentifier?.focus();
         } else {
             this.elements.loginTab?.classList.remove('active');
             this.elements.signupTab?.classList.add('active');
             this.elements.loginForm?.classList.add('hidden');
             this.elements.signupForm?.classList.remove('hidden');
             this.elements.otpForm?.classList.add('hidden');
-            this.elements.signupEmail?.focus();
+            this.elements.signupUsername?.focus();
         }
     },
 
@@ -224,15 +270,64 @@ const Auth = {
     },
 
     // ==================================
-    // LOGIN FLOW (Email + Password only)
+    // DEMO FLOW
+    // ==================================
+
+    async handleDemoLogin() {
+        const displayName = this.elements.demoNameInput?.value?.trim();
+
+        if (!displayName || displayName.length < 2) {
+            alert('Please enter a display name (min 2 chars)');
+            return;
+        }
+
+        this.setLoading(this.elements.demoStartBtn, true);
+
+        try {
+            const response = await fetch('/auth/demo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ displayName })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Demo login failed');
+            }
+
+            // Success
+            this.currentUser = data.user;
+            this.sessionToken = data.token;
+            localStorage.setItem('authToken', data.token);
+            
+            // Hide Modal & Backdrop
+            this.elements.demoModal?.classList.add('hidden');
+            const backdrop = document.getElementById('demo-modal-container');
+            if (backdrop) {
+                 backdrop.classList.add('hidden');
+            }
+
+            this.ensureProfile(data.user);
+            this.hideAuthOverlay();
+
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            this.setLoading(this.elements.demoStartBtn, false);
+        }
+    },
+
+    // ==================================
+    // LOGIN FLOW (Email OR Username + Password)
     // ==================================
 
     async handleLogin() {
-        const email = this.elements.loginEmail?.value?.trim();
+        const identifier = this.elements.loginIdentifier?.value?.trim();
         const password = this.elements.loginPassword?.value;
 
-        if (!email || !email.includes('@')) {
-            this.showError('Please enter a valid email');
+        if (!identifier) {
+            this.showError('Please enter your email or username');
             return;
         }
 
@@ -245,10 +340,11 @@ const Auth = {
         this.clearError();
 
         try {
+            // Send payload as 'email' - server handles detection
             const response = await fetch('/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email: identifier, password }) 
             });
 
             const data = await response.json();
@@ -276,9 +372,16 @@ const Auth = {
     // ==================================
 
     async handleSignupStart() {
+        const username = this.elements.signupUsername?.value?.trim();
         const email = this.elements.signupEmail?.value?.trim();
         const password = this.elements.signupPassword?.value;
         const confirmPassword = this.elements.signupConfirm?.value;
+
+        if (!username || username.length < 3) {
+            this.showError('Username must be at least 3 characters');
+            this.elements.signupUsername?.focus();
+            return;
+        }
 
         if (!email || !email.includes('@')) {
             this.showError('Please enter a valid email');
@@ -302,7 +405,7 @@ const Auth = {
             const response = await fetch('/auth/signup/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, confirmPassword })
+                body: JSON.stringify({ email, username, password, confirmPassword })
             });
 
             const data = await response.json();
@@ -357,10 +460,17 @@ const Auth = {
 
             // Success!
             this.currentUser = data.user;
+            // The server now returns the chosen username in user object, 
+            // but we might need to refresh profile to be sure.
+            
             this.sessionToken = data.token;
             localStorage.setItem('authToken', data.token);
             this.pendingEmail = null;
-            this.ensureProfile(data.user);
+            // Ensure profile (just in case)
+            if (window.supabase) { 
+                // Profile creation moved to backend, so this is just a sync check
+                this.ensureProfile(data.user); 
+            }
             this.hideAuthOverlay();
 
         } catch (error) {
@@ -425,22 +535,8 @@ const Auth = {
     },
 
     async ensureProfile(user) {
+        // Now handled mostly by backend, but kept for redundancy
         if (!user || !window.supabase) return;
-        
-        try {
-            const { error } = await window.supabase
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    username: user.email.split('@')[0],
-                    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email.split('@')[0])}&background=667eea&color=fff`
-                }, { onConflict: 'id' });
-            
-            if (error) console.warn('[Auth] Profile upsert failed:', error);
-            else console.log('[Auth] Profile synced');
-        } catch (e) {
-            console.warn('[Auth] Profile sync error:', e);
-        }
     },
 
     getUser() {

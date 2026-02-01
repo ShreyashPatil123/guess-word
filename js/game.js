@@ -43,12 +43,16 @@ const Game = {
       UI.generateKeyboard();
       UI.updateTimer(this.state.timeLeft);
 
-      // Fetch Word
+      // Fetch Word with exclusion filtering
       // Small delay to allow UI to paint if main thread was blocked
       await new Promise((r) => setTimeout(r, 50));
 
+      // Get solved words to exclude from new word generation
+      const excludeWords = Storage.getSolvedWords(difficulty);
+      console.log(`[Game] Starting game, excluding ${excludeWords.length} solved words`);
+
       try {
-        const word = await GeminiAPI.generateWord(difficulty);
+        const word = await GeminiAPI.generateWord(difficulty, excludeWords);
         this.state.targetWord = word;
         this.state.isPlaying = true;
         this.startTimer();
@@ -59,7 +63,7 @@ const Game = {
         console.error("API Error in Game.start:", apiError);
         // Fallback is handled in GeminiAPI, but if we get here, something major failed.
         // We'll try one last synchronous fallback just in case.
-        this.state.targetWord = GeminiAPI.getFallback(difficulty);
+        this.state.targetWord = GeminiAPI.getFallback(difficulty, excludeWords);
         this.state.isPlaying = true;
         this.startTimer();
         // Show pause button in header
@@ -368,6 +372,12 @@ const Game = {
       score: score,
       solved: win,
     });
+
+    // NEW: Add word to history on successful solve (for repetition prevention)
+    if (win) {
+      Storage.addSolvedWord(this.state.targetWord, this.state.difficulty);
+      console.log(`[Game] Word solved and added to history: ${this.state.targetWord}`);
+    }
 
     // ==========================================
     // SUPABASE SCORING INTEGRATION

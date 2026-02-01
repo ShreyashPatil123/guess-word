@@ -6,7 +6,7 @@
 /**
  * Leaderboard Logic - Desktop First Implementation
  */
-const Leaderboard = {
+window.Leaderboard = {
     state: {
         activeTab: 'global', // 'global' | '3' | '4' | '5'
         data: {}, // Cache: { [tab]: [] }
@@ -283,9 +283,10 @@ const Leaderboard = {
             let wins = 0;
 
             if (isGlobal) {
-                // leaderboard_global fields: total_games, total_wins, (no best_score usually)
+                // leaderboard_global fields now include: total_games, total_wins, best_score
                 games = row.total_games || 0;
                 wins = row.total_wins || 0;
+                best = row.best_score || '-';
             } else {
                 // leaderboard_by_mode fields: games_played, games_won, best_score
                 games = row.games_played || 0;

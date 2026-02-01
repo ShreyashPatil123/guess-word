@@ -193,6 +193,17 @@
     align-self: flex-start;
     margin-top: var(--gap-md);
   }
+
+  /* Show desktop-only elements on tablet+ */
+  .desktop-only {
+    display: table-cell;
+  }
+
+  /* Action buttons - horizontal on tablet */
+  .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+  }
 }
 
 /* =============================================
@@ -269,7 +280,15 @@
     }
 
     /* Difficulty Cards - Horizontal Layout for Desktop */
-    /* ... (unchanged) ... */
+    .difficulty-cards {
+        flex-direction: row;
+        max-width: 900px;
+        gap: var(--gap-lg);
+    }
+
+    .diff-card {
+        flex: 1;
+    }
 
     /* Game Board - optimized for strict vertical layout */
     #game-board-area {
