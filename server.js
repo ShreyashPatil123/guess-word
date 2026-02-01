@@ -794,6 +794,107 @@ app.post('/api/generate-word', async (req, res) => {
 });
 
 // ==================================
+// ACHIEVEMENTS API ROUTES
+// ==================================
+
+/**
+ * GET /api/achievements/user
+ * Get all achievements for the authenticated user
+ */
+app.get('/api/achievements/user', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const payload = verifySessionToken(token);
+        if (!payload) return res.status(401).json({ error: 'Invalid session' });
+
+        if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+
+        const { data: achievements, error } = await supabase
+            .from('user_achievements')
+            .select('achievement_id, earned_at')
+            .eq('user_id', payload.userId);
+
+        if (error) {
+            console.error('Fetch achievements error:', error);
+            return res.status(500).json({ error: 'Failed to fetch achievements' });
+        }
+
+        res.json({ achievements: achievements || [] });
+
+    } catch (error) {
+        console.error('Get Achievements Error:', error);
+        res.status(500).json({ error: 'Failed to get achievements' });
+    }
+});
+
+/**
+ * POST /api/achievements/unlock
+ * Unlock an achievement for the authenticated user
+ * Body: { achievementId: string }
+ */
+app.post('/api/achievements/unlock', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const payload = verifySessionToken(token);
+        if (!payload) return res.status(401).json({ error: 'Invalid session' });
+
+        // Demo users can't save achievements to DB
+        if (payload.accountType === 'demo') {
+            return res.json({ success: true, demo: true });
+        }
+
+        const { achievementId } = req.body;
+        if (!achievementId) {
+            return res.status(400).json({ error: 'Achievement ID is required' });
+        }
+
+        if (!supabase) return res.status(500).json({ error: 'Database not configured' });
+
+        // Verify achievement exists
+        const { data: achievement, error: achError } = await supabase
+            .from('achievements')
+            .select('id')
+            .eq('id', achievementId)
+            .single();
+
+        if (achError || !achievement) {
+            return res.status(400).json({ error: 'Invalid achievement ID' });
+        }
+
+        // Insert (ignore duplicates)
+        const { error } = await supabase
+            .from('user_achievements')
+            .upsert({
+                user_id: payload.userId,
+                achievement_id: achievementId,
+                earned_at: new Date().toISOString()
+            }, { onConflict: 'user_id,achievement_id' });
+
+        if (error) {
+            console.error('Unlock achievement error:', error);
+            return res.status(500).json({ error: 'Failed to unlock achievement' });
+        }
+
+        console.log(`Achievement unlocked: ${achievementId} for user ${payload.userId}`);
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Unlock Achievement Error:', error);
+        res.status(500).json({ error: 'Failed to unlock achievement' });
+    }
+});
+
+// ==================================
 // START SERVER
 // ==================================
 if (require.main === module) {

@@ -17,6 +17,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#6aaa64" />
     
+    <!-- Google AdSense -->
+    <meta name="google-adsense-account" content="ca-pub-4898199844231067">
+    
     <!-- Prevent auto-zoom on input focus (iOS) -->
     <meta name="format-detection" content="telephone=no" />
     
@@ -72,6 +75,13 @@
 
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="auth-overlay hidden">
+      <!-- Left Side Ad -->
+      <div class="side-ad side-ad-left">
+        <div class="ad-placeholder">
+          <span>Advertisement</span>
+        </div>
+      </div>
+      
       <div class="auth-modal">
         <div class="auth-header">
           <h2>Welcome to <span class="highlight">GuessAI</span></h2>
@@ -182,10 +192,25 @@
         <!-- Error Message -->
         <p id="auth-error" class="auth-error hidden"></p>
       </div>
+      
+      <!-- Right Side Ad -->
+      <div class="side-ad side-ad-right">
+        <div class="ad-placeholder">
+          <span>Advertisement</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Main Game Container -->
-    <div id="game-container" class="container hidden">
+    <!-- Main Game Container Wrapper with Side Ads -->
+    <div id="game-wrapper" class="game-wrapper hidden">
+      <!-- Left Side Ad -->
+      <div class="side-ad side-ad-left">
+        <div class="ad-placeholder">
+          <span>Advertisement</span>
+        </div>
+      </div>
+      
+      <div id="game-container" class="container">
       <!-- Header -->
       <header>
         <div class="header-left">
@@ -451,6 +476,65 @@
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Achievements Screen (Full Page) -->
+      <section id="achievements-screen" class="screen hidden dashboard-layout">
+        <div class="achievements-page">
+          <!-- Header -->
+          <div class="achievements-page-header">
+            <div class="achievements-title-row">
+              <h2>🏆 Achievements</h2>
+              <button id="achievements-back-btn" class="btn text">← Back to Menu</button>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="achievements-stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">🎖️</div>
+                <div class="stat-info">
+                  <span class="stat-label">Unlocked</span>
+                  <span id="ach-page-unlocked" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-info">
+                  <span class="stat-label">Total</span>
+                  <span id="ach-page-total" class="stat-value">20</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-info">
+                  <span class="stat-label">Points</span>
+                  <span id="ach-page-points" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                  <span class="stat-label">Progress</span>
+                  <span id="ach-page-progress" class="stat-value">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Filter Tabs -->
+          <div class="achievements-filter-tabs">
+            <button class="ach-filter-tab active" data-filter="all">All</button>
+            <button class="ach-filter-tab" data-filter="gameplay">Gameplay</button>
+            <button class="ach-filter-tab" data-filter="mastery">Mastery</button>
+            <button class="ach-filter-tab" data-filter="collection">Collection</button>
+            <button class="ach-filter-tab" data-filter="special">Special</button>
+          </div>
+          
+          <!-- Achievements Grid -->
+          <div id="achievements-page-grid" class="achievements-page-grid">
+            <!-- Achievement cards will be rendered by JS -->
           </div>
         </div>
       </section>
@@ -821,6 +905,49 @@
         <div class="ach-text">
           <h4 id="ach-title">Title</h4>
           <p id="ach-desc">Description</p>
+        </div>
+      </div>
+
+      <!-- Achievements Modal -->
+      <div id="achievements-modal-backdrop" class="modal-backdrop hidden">
+        <div id="achievements-modal" class="modal achievements-modal">
+          <div class="modal-header">
+            <h2>🏆 Achievements</h2>
+            <button class="close-modal-btn" id="close-achievements-btn">&times;</button>
+          </div>
+          <div class="achievements-stats">
+            <div class="ach-stat">
+              <span id="ach-unlocked-count">0</span>
+              <span class="ach-stat-label">Unlocked</span>
+            </div>
+            <div class="ach-stat">
+              <span id="ach-total-count">20</span>
+              <span class="ach-stat-label">Total</span>
+            </div>
+            <div class="ach-stat">
+              <span id="ach-total-points">0</span>
+              <span class="ach-stat-label">Points</span>
+            </div>
+          </div>
+          <div class="achievements-filter">
+            <button class="ach-filter-btn active" data-filter="all">All</button>
+            <button class="ach-filter-btn" data-filter="gameplay">Gameplay</button>
+            <button class="ach-filter-btn" data-filter="mastery">Mastery</button>
+            <button class="ach-filter-btn" data-filter="collection">Collection</button>
+            <button class="ach-filter-btn" data-filter="special">Special</button>
+          </div>
+          <div id="achievements-grid" class="achievements-grid">
+            <!-- Achievement cards injected by JS -->
+            <div class="ach-loading">Loading achievements...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+      
+      <!-- Right Side Ad -->
+      <div class="side-ad side-ad-right">
+        <div class="ad-placeholder">
+          <span>Advertisement</span>
         </div>
       </div>
     </div>
