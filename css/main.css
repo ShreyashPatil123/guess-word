@@ -519,6 +519,127 @@ header {
   color: white;
 }
 
+/* --- Game Layout (Side Panel) --- */
+.game-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.game-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.game-side-panel {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Hint Card */
+.hint-card {
+  background: rgba(255, 255, 255, 0.7); /* Light mode glass */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme="dark"] .hint-card {
+  background: rgba(30, 30, 35, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.hint-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] .hint-header {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+.hint-icon {
+  font-size: 1.4rem;
+}
+
+.hint-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+.hint-text {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.hint-placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.flash-highlight {
+  animation: flashHighlight 1s ease;
+}
+
+@keyframes flashHighlight {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(255,215,0,0); }
+  50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(255,215,0,0.3); border-color: var(--accent-warning); }
+  100% { transform: scale(1); }
+}
+
+/* Desktop Side Layout */
+@media (min-width: 1024px) {
+  .game-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 40px;
+    padding-top: 10px;
+  }
+  
+  .game-center {
+    flex: 1; /* Take up remaining space */
+    max-width: 450px;
+  }
+
+  .game-side-panel {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 20px;
+  }
+}
+
 /* --- Modals --- */
 .modal-backdrop {
   position: fixed;

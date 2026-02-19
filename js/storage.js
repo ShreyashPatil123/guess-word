@@ -52,6 +52,11 @@ const Storage = {
   updateStats(win, difficulty, score) {
     const data = this.getData();
     data.stats.gamesPlayed++;
+
+    // Auto-create distribution entry for any word length
+    if (!data.stats.distribution[difficulty]) {
+      data.stats.distribution[difficulty] = { played: 0, won: 0 };
+    }
     data.stats.distribution[difficulty].played++;
 
     if (win) {

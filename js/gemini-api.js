@@ -44,7 +44,16 @@ const GeminiAPI = {
         }),
       });
 
-      if (!response.ok) throw new Error("API Request Failed");
+      if (!response.ok) {
+        let errorMessage = "API Request Failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Keep default message if JSON parse fails
+        }
+        throw new Error(errorMessage);
+      }
 
       const data = await response.json();
 

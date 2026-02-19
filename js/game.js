@@ -1,74 +1,109 @@
 const Game = {
-  config: {
-    3: { time: 180, attempts: 6 },
-    4: { time: 240, attempts: 7 },
-    5: { time: 300, attempts: 8 },
-  },
-
   state: {
     isPlaying: false,
-    isPaused: false, // NEW: Pause state
-    difficulty: 0,
-    targetWord: "",
-    guesses: [], // Array of { word: string, evaluation: string[] }
+    isPaused: false,
+    targetWordLength: 0,
     currentGuess: "",
+    guesses: [],
     currentAttempt: 0,
     timeLeft: 0,
     timerInterval: null,
-    letterStates: {}, // {'A': 'correct', 'B': 'absent'}
-    sessionScore: 0, // Accumulates across games
+    letterStates: {},
+    sessionScore: 0,
+    gameFinalized: false,
+    maxAttempts: 6,
+    hasHint: false,
+    hintText: null,
   },
 
-  async start(difficulty) {
+  // ========================================
+  // AUTH HELPER
+  // ========================================
+  getAuthHeaders() {
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    } else {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = "guest_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem("guestId", guestId);
+      }
+      headers["x-guest-id"] = guestId;
+    }
+    return headers;
+  },
+
+  // ========================================
+  // GAME START (No difficulty — random word)
+  // ========================================
+  async start() {
     try {
-      // Init State
       this.resetState();
-      this.state.difficulty = difficulty;
-      this.state.timeLeft = this.config[difficulty].time;
 
-      // Initialize Progress System for Current User
-      // Auth.currentUser might be null if guest or not fully loaded,
-      // but ProgressSystem handles null/guest.
-      const userId = Auth.currentUser ? Auth.currentUser.id : "guest";
-      ProgressSystem.init(userId);
+      // Initialize Progress System
+      const userId = (window.Auth && Auth.currentUser) ? Auth.currentUser.id : "guest";
+      if (window.ProgressSystem) ProgressSystem.init(userId);
 
-      // FIX: Removed debug log for production
-
-      // Switch screen immediately
+      // Show game screen immediately
       UI.showScreen("game");
 
-      // Render basic UI
-      const attempts = this.config[difficulty].attempts;
-      UI.createGrid(attempts, difficulty);
+      console.log("[Game] Requesting random word from server...");
+
+      const res = await fetch("/api/game/start", {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to start game");
+      }
+
+      const data = await res.json();
+      const length = data.length;
+
+      // Dynamic config based on word length
+      const maxAttempts = length + 1; // e.g. 5-letter word → 6 attempts
+      const timeLimit = length <= 4 ? 180 : length <= 6 ? 300 : 360;
+
+      this.state.targetWordLength = length;
+      this.state.maxAttempts = maxAttempts;
+      this.state.timeLeft = timeLimit;
+      this.state.isPlaying = true;
+
+      // Check for hint availability
+      if (data.hint) {
+        this.state.hasHint = true;
+        this.state.hintText = data.hint;
+        this.showHintUI(data.hint);
+        // Dim hint button as used
+        const hintBtn = document.getElementById('hint-btn');
+        if (hintBtn) {
+           hintBtn.classList.remove('hidden');
+           hintBtn.classList.add('used');
+        }
+      } else if (data.hasHint) {
+        this.state.hasHint = true;
+        const hintBtn = document.getElementById('hint-btn');
+        if (hintBtn) hintBtn.classList.remove('hidden');
+      }
+
+      console.log(`[Game] Word length: ${length}, Attempts: ${maxAttempts}, Time: ${timeLimit}s`);
+
+      // Build UI
+      UI.createGrid(maxAttempts, length);
       UI.generateKeyboard();
       UI.updateTimer(this.state.timeLeft);
+      UI.updateGrid([], 0, "", maxAttempts, length);
 
-      // Fetch Word with exclusion filtering
-      // Small delay to allow UI to paint if main thread was blocked
-      await new Promise((r) => setTimeout(r, 50));
+      // Start timer
+      this.startTimer();
 
-      // Get solved words to exclude from new word generation
-      const excludeWords = Storage.getSolvedWords(difficulty);
-      console.log(`[Game] Starting game, excluding ${excludeWords.length} solved words`);
+      // Show pause button
+      document.getElementById("pause-btn")?.classList.remove("hidden");
 
-      try {
-        const word = await GeminiAPI.generateWord(difficulty, excludeWords);
-        this.state.targetWord = word;
-        this.state.isPlaying = true;
-        this.startTimer();
-        // Show pause button in header
-        document.getElementById("pause-btn")?.classList.remove("hidden");
-        // FIX: Removed target word debug log (security)
-      } catch (apiError) {
-        console.error("API Error in Game.start:", apiError);
-        // Fallback is handled in GeminiAPI, but if we get here, something major failed.
-        // We'll try one last synchronous fallback just in case.
-        this.state.targetWord = GeminiAPI.getFallback(difficulty, excludeWords);
-        this.state.isPlaying = true;
-        this.startTimer();
-        // Show pause button in header
-        document.getElementById("pause-btn")?.classList.remove("hidden");
-      }
     } catch (e) {
       console.error("CRITICAL Game Start Error:", e);
       alert("Error starting game: " + e.message);
@@ -76,166 +111,77 @@ const Game = {
     }
   },
 
-  resume() {
-    const saved = Storage.getData().gameState;
-    if (!saved) return;
-
-    this.state = saved;
-
-    UI.showScreen("game");
-    UI.createGrid(
-      this.config[this.state.difficulty].attempts,
-      this.state.difficulty,
-    );
-    UI.generateKeyboard();
-
-    // Restore visuals
-    UI.updateGrid(
-      this.state.guesses,
-      this.state.currentAttempt,
-      this.state.currentGuess,
-      this.config[this.state.difficulty].attempts,
-      this.state.difficulty,
-    );
-    UI.updateKeyboard(this.state.letterStates);
-    UI.updateTimer(this.state.timeLeft);
-
-    this.startTimer();
-  },
-
-  resetState() {
-    // Clear timer if running
-    if (this.state.timerInterval) clearInterval(this.state.timerInterval);
-
-    this.state = {
-      isPlaying: false,
-      isPaused: false,
-      difficulty: 0,
-      targetWord: "",
-      guesses: [],
-      currentGuess: "",
-      currentAttempt: 0,
-      timeLeft: 0,
-      timerInterval: null,
-      // Preserve sessionScore if resetState is called for new game?
-      // Usually resetState is for a fresh game start.
-      // Requirement: "Accumulate per word: Game.state.sessionScore += finalScore".
-      // If I wipe it here, it won't accumulate.
-      // I should capture the old sessionScore before resetting, or NOT reset it here.
-      // Let's modify resetState to KEEP sessionScore if it exists.
-      sessionScore: this.state?.sessionScore || 0,
-      letterStates: {},
-      gameFinalized: false, // Prevent duplicate stats recording
-    };
-  },
-
-  restart() {
-    if (this.state.difficulty > 0) {
-      this.start(this.state.difficulty);
-    } else {
-      UI.showScreen("dashboard");
-    }
-  },
-
-  startTimer() {
-    if (this.state.timerInterval) clearInterval(this.state.timerInterval);
-    this.state.timerInterval = setInterval(() => {
-      // Don't tick if not playing OR if paused
-      if (!this.state.isPlaying || this.state.isPaused) return;
-
-      this.state.timeLeft--;
-      UI.updateTimer(this.state.timeLeft);
-
-      if (this.state.timeLeft <= 0) {
-        this.endGame(false, "Time's Up!");
-      }
-    }, 1000);
-  },
-
-  // ========== PAUSE SYSTEM ==========
-
-  pause() {
-    if (!this.state.isPlaying || this.state.isPaused) return;
-    this.state.isPaused = true;
-    // Game paused
-  },
-
-  resumeFromPause() {
-    if (!this.state.isPaused) return;
-    this.state.isPaused = false;
-    // Game resumed
-  },
-
-  quitToHome() {
-    // Stop timer, reset state, go to dashboard
-    this.resetState();
-    // Hide pause button
-    document.getElementById("pause-btn")?.classList.add("hidden");
-    UI.showScreen("dashboard");
-  },
-
+  // ========================================
+  // INPUT HANDLING
+  // ========================================
   handleInput(key) {
     try {
-      // Block input if not playing OR if paused
       if (!this.state.isPlaying || this.state.isPaused) return;
 
-      const maxLen = this.state.difficulty;
+      const maxLen = this.state.targetWordLength;
 
       if (key === "BACKSPACE") {
         this.state.currentGuess = this.state.currentGuess.slice(0, -1);
-        AudioController.play("click");
+        if (window.AudioController) AudioController.play("click");
       } else if (key === "ENTER") {
-        if (this.state.currentGuess.length == maxLen) {
-          // Loose equality just in case
+        if (this.state.currentGuess.length === maxLen) {
           this.submitGuess();
         } else {
-          document
-            .getElementById("grid-container")
-            .classList.add("animate-shake");
-          setTimeout(
-            () =>
-              document
-                .getElementById("grid-container")
-                .classList.remove("animate-shake"),
-            500,
-          );
-          AudioController.play("wrong");
+          const grid = document.getElementById("grid-container");
+          if (grid) {
+            grid.classList.add("animate-shake");
+            setTimeout(() => grid.classList.remove("animate-shake"), 500);
+          }
+          if (window.AudioController) AudioController.play("wrong");
         }
-      } else if (
-        this.state.currentGuess.length < maxLen &&
-        /^[A-Z]$/.test(key)
-      ) {
+      } else if (this.state.currentGuess.length < maxLen && /^[A-Z]$/.test(key)) {
         this.state.currentGuess += key;
-        AudioController.play("click");
+        if (window.AudioController) AudioController.play("click");
       }
 
       UI.updateGrid(
         this.state.guesses,
         this.state.currentAttempt,
         this.state.currentGuess,
-        this.config[this.state.difficulty].attempts,
-        this.state.difficulty,
+        this.state.maxAttempts,
+        this.state.targetWordLength,
       );
     } catch (error) {
       console.error("Input Error:", error);
-      alert("Unexpected error handling input: " + error.message);
     }
   },
 
-  submitGuess() {
+  // ========================================
+  // GUESS SUBMISSION (Server-side validation)
+  // ========================================
+  async submitGuess() {
     try {
       const guess = this.state.currentGuess;
-      const target = this.state.targetWord;
+      const length = this.state.targetWordLength;
 
-      if (!target) throw new Error("Target word is missing!");
+      if (guess.length !== length) return;
 
-      // Evaluate
-      const evaluation = this.evaluateGuess(guess, target);
+      console.log(`[Game] Submitting guess: ${guess}`);
 
-      // Update State
+      const res = await fetch("/api/check-guess", {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ guess }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Validation failed");
+      }
+
+      const result = await res.json();
+      // result: { correct, evaluation, solution }
+
+      // Update state
+      const evaluation = result.evaluation;
       this.state.guesses.push({ word: guess, evaluation });
 
-      // Update Keyboard & Letter States
+      // Update letter states for keyboard coloring
       guess.split("").forEach((char, i) => {
         const status = evaluation[i];
         const current = this.state.letterStates[char];
@@ -246,148 +192,104 @@ const Game = {
           this.state.letterStates[char] = "absent";
       });
 
+      // Advance attempt
+      this.state.currentAttempt++;
+      this.state.currentGuess = "";
+
       // UI Updates
       UI.updateGrid(
         this.state.guesses,
         this.state.currentAttempt,
         "",
-        this.config[this.state.difficulty].attempts,
-        this.state.difficulty,
+        this.state.maxAttempts,
+        this.state.targetWordLength,
       );
       UI.updateKeyboard(this.state.letterStates);
 
-      // Check Win/Loss
-      if (guess === target) {
-        AudioController.play("correct");
+      // Check Win
+      if (result.correct) {
+        if (window.AudioController) AudioController.play("correct");
         setTimeout(() => {
-          AudioController.play("win");
-          this.endGame(true);
+          if (window.AudioController) AudioController.play("win");
+          this.endGame(true, result.solution || guess);
         }, 500);
         return;
-      } else {
-        AudioController.play("wrong");
       }
 
-      this.state.currentAttempt++;
-      this.state.currentGuess = "";
-
-      if (
-        this.state.currentAttempt >= this.config[this.state.difficulty].attempts
-      ) {
-        this.endGame(false, "Out of Attempts");
-      } else {
-        // Save state for resume
-        this.saveProgress();
+      // Check Loss
+      if (window.AudioController) AudioController.play("wrong");
+      if (this.state.currentAttempt >= this.state.maxAttempts) {
+        // Fetch the solution from server
+        await this.revealAndEnd();
       }
+
     } catch (error) {
       console.error("Submit Error:", error);
       alert("Error submitting guess: " + error.message);
     }
   },
 
-  evaluateGuess(guess, target) {
-    const res = Array(guess.length).fill("absent");
-    const targetArr = target.split("");
-    const guessArr = guess.split("");
-
-    // 1. Find Greens
-    guessArr.forEach((char, i) => {
-      if (char === targetArr[i]) {
-        res[i] = "correct";
-        targetArr[i] = null; // Mark as used
-        guessArr[i] = null;
-      }
-    });
-
-    // 2. Find Yellows
-    guessArr.forEach((char, i) => {
-      if (char && targetArr.includes(char)) {
-        res[i] = "present";
-        // Remove ONE instance from target to handle duplicates
-        const idx = targetArr.indexOf(char);
-        targetArr[idx] = null;
-      }
-    });
-
-    return res;
+  // ========================================
+  // REVEAL WORD & END GAME (Loss)
+  // ========================================
+  async revealAndEnd() {
+    try {
+      const res = await fetch("/api/game/reveal", {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      const word = data.word || "???";
+      this.endGame(false, word);
+    } catch (e) {
+      console.error("Reveal Error:", e);
+      this.endGame(false, "???");
+    }
   },
 
-  saveProgress() {
-    const data = Storage.getData();
-    data.gameState = this.state;
-    // Don't save interval ID
-    data.gameState.timerInterval = null;
-    Storage.saveData(data);
-  },
-
-  // Integrated Scoring Logic
-  // Integrated Scoring Logic (Extended)
-  calculateScore(win, timeRemaining, attempts) {
-    const totalTime = this.config[this.state.difficulty].time;
-
-    // Unified call for both Win and Loss
-    // The scoring system now handles full word score + additive partials internally
-    const scoreData = ScoringSystem.calculateWordScore({
-      difficulty: this.state.difficulty,
-      attemptsUsed: attempts, // 1-based
-      maxAttempts: this.config[this.state.difficulty].attempts,
-      isSolved: win,
-      remainingTime: timeRemaining,
-      totalTime: totalTime,
-      guesses: this.state.guesses,
-      targetWord: this.state.targetWord,
-    });
-
-    // Score calculated
-    return scoreData.wordScore;
-  },
-
-  endGame(win, reason) {
+  // ========================================
+  // GAME END
+  // ========================================
+  endGame(win, revealedWord) {
     this.state.isPlaying = false;
     clearInterval(this.state.timerInterval);
-    // Hide pause button
     document.getElementById("pause-btn")?.classList.add("hidden");
 
     // Clear saved game
-    const data = Storage.getData();
-    data.gameState = null;
-    Storage.saveData(data);
-
-    const score = this.calculateScore(
-      win,
-      this.state.timeLeft,
-      this.state.currentAttempt + 1,
-    );
-
-    // Accumulate Session Score
-    this.state.sessionScore += score;
-    // Session score updated
-
-    // Update Stats (Legacy Storage)
-    const newStats = Storage.updateStats(win, this.state.difficulty, score);
-
-    // NEW: Record Persistent Progress
-    ProgressSystem.recordGameResult({
-      difficulty: this.state.difficulty,
-      score: score,
-      solved: win,
-    });
-
-    // NEW: Add word to history on successful solve (for repetition prevention)
-    if (win) {
-      Storage.addSolvedWord(this.state.targetWord, this.state.difficulty);
-      console.log(`[Game] Word solved and added to history: ${this.state.targetWord}`);
+    if (window.Storage) {
+      const data = Storage.getData();
+      data.gameState = null;
+      Storage.saveData(data);
     }
 
-    // ==========================================
-    // SUPABASE SCORING INTEGRATION
-    // ==========================================
-    if (window.supabase && Auth.currentUser && !this.state.gameFinalized) {
-      this.state.gameFinalized = true;
+    // Calculate score
+    const score = this.calculateScore(win);
+    this.state.sessionScore += score;
 
-      // Map difficulty to 'easy' | 'medium' | 'hard'
+    // Update stats
+    if (window.Storage) {
+      Storage.updateStats(win, this.state.targetWordLength, score);
+    }
+
+    // Progress system
+    if (window.ProgressSystem) {
+      ProgressSystem.recordGameResult({
+        difficulty: this.state.targetWordLength,
+        score: score,
+        solved: win,
+      });
+    }
+
+    // Add solved word to history
+    if (win && window.Storage && revealedWord) {
+      Storage.addSolvedWord(revealedWord, this.state.targetWordLength);
+    }
+
+    // Supabase sync
+    if (window.supabase && window.Auth && Auth.currentUser && !this.state.gameFinalized) {
+      this.state.gameFinalized = true;
       const diffMap = { 3: "easy", 4: "medium", 5: "hard" };
-      const mode = diffMap[this.state.difficulty];
+      const mode = diffMap[this.state.targetWordLength] || "medium";
 
       window.supabase
         .rpc("update_game_stats", {
@@ -396,46 +298,200 @@ const Game = {
           p_score: score,
           p_solved: win,
         })
-        .then(({ data, error }) => {
+        .then(({ error }) => {
           if (error) console.error("Supabase RPC Error:", error);
-          else console.log("Stats synced to Supabase:", data);
-
-          // Invalidate Leaderboard Cache if needed
           if (typeof Leaderboard !== "undefined") Leaderboard.state.data = {};
         });
     }
 
     UI.updateScore(score);
 
-    // Check Achievements
-    const unlocked = Achievements.check(this.state, {
-      win,
-      timeTaken: this.config[this.state.difficulty].time - this.state.timeLeft,
-      difficulty: this.state.difficulty,
-      attempts: this.state.currentAttempt + 1,
-      maxAttempts: this.config[this.state.difficulty].attempts,
-    });
-
-    if (unlocked && unlocked.length > 0) {
-      unlocked.forEach((ach) => UI.showAchievement(ach));
+    // Achievements
+    if (window.Achievements) {
+      const unlocked = Achievements.check(this.state, {
+        win,
+        timeTaken: (this.state.timeLeft > 0 ? 300 - this.state.timeLeft : 300),
+        difficulty: this.state.targetWordLength,
+        attempts: this.state.currentAttempt,
+        maxAttempts: this.state.maxAttempts,
+      });
+      if (unlocked && unlocked.length > 0) {
+        unlocked.forEach((ach) => UI.showAchievement(ach));
+      }
     }
 
-    // Show Result
+    // Show result
     setTimeout(() => {
-      const m = Math.floor(
-        (this.config[this.state.difficulty].time - this.state.timeLeft) / 60,
-      );
-      const s =
-        (this.config[this.state.difficulty].time - this.state.timeLeft) % 60;
+      const totalTime = this.state.targetWordLength <= 4 ? 180 : this.state.targetWordLength <= 6 ? 300 : 360;
+      const elapsed = totalTime - this.state.timeLeft;
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
 
       UI.showResult({
         win,
-        word: this.state.targetWord,
-        attempts: this.state.currentAttempt + (win ? 1 : 0),
-        maxAttempts: this.config[this.state.difficulty].attempts,
+        word: revealedWord,
+        attempts: this.state.currentAttempt,
+        maxAttempts: this.state.maxAttempts,
         timeText: `${m}:${s.toString().padStart(2, "0")}`,
         score,
       });
     }, 1000);
+  },
+
+  // ========================================
+  // SCORING
+  // ========================================
+  calculateScore(win) {
+    if (!win) return 0;
+    if (window.ScoringSystem) {
+      const totalTime = this.state.targetWordLength <= 4 ? 180 : this.state.targetWordLength <= 6 ? 300 : 360;
+      const scoreData = ScoringSystem.calculateWordScore({
+        difficulty: this.state.targetWordLength,
+        attemptsUsed: this.state.currentAttempt,
+        maxAttempts: this.state.maxAttempts,
+        isSolved: win,
+        remainingTime: this.state.timeLeft,
+        totalTime: totalTime,
+        guesses: this.state.guesses,
+        targetWord: "",
+      });
+      return scoreData.wordScore;
+    }
+    // Simple fallback
+    return win ? 100 : 0;
+  },
+
+  // ========================================
+  // TIMER
+  // ========================================
+  startTimer() {
+    if (this.state.timerInterval) clearInterval(this.state.timerInterval);
+    this.state.timerInterval = setInterval(() => {
+      if (!this.state.isPlaying || this.state.isPaused) return;
+      this.state.timeLeft--;
+      UI.updateTimer(this.state.timeLeft);
+      if (this.state.timeLeft <= 0) {
+        this.revealAndEnd();
+      }
+    }, 1000);
+  },
+
+  // ========================================
+  // PAUSE SYSTEM
+  // ========================================
+  pause() {
+    if (!this.state.isPlaying || this.state.isPaused) return;
+    this.state.isPaused = true;
+  },
+
+  resumeFromPause() {
+    if (!this.state.isPaused) return;
+    this.state.isPaused = false;
+  },
+
+  // ========================================
+  // STATE MANAGEMENT
+  // ========================================
+  resetState() {
+    if (this.state.timerInterval) clearInterval(this.state.timerInterval);
+    this.state = {
+      isPlaying: false,
+      isPaused: false,
+      targetWordLength: 0,
+      currentGuess: "",
+      guesses: [],
+      currentAttempt: 0,
+      timeLeft: 0,
+      timerInterval: null,
+      letterStates: {},
+      sessionScore: this.state?.sessionScore || 0,
+      gameFinalized: false,
+      maxAttempts: 6,
+      hasHint: false,
+      hintText: null,
+    };
+    
+    // Reset Hint UI
+    const hintTextEl = document.querySelector('#hint-card .hint-text');
+    if (hintTextEl) hintTextEl.innerHTML = '<span class="hint-placeholder">Waiting for game...</span>';
+    const hintBtn = document.getElementById('hint-btn');
+    if (hintBtn) {
+       hintBtn.classList.add('hidden');
+       hintBtn.classList.remove('used');
+    }
+  },
+
+  // ========================================
+  // HINT SYSTEM
+  // ========================================
+  async requestHint() {
+    if (!this.state.isPlaying || !this.state.hasHint) return;
+    
+    // Already have hint? Just show it
+    if (this.state.hintText) {
+      this.showHintUI(this.state.hintText);
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/game/hint", {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.hint) {
+        this.state.hintText = data.hint;
+        this.showHintUI(data.hint);
+        // Hide hint button after use
+        const hintBtn = document.getElementById('hint-btn');
+        if (hintBtn) hintBtn.classList.add('used');
+      }
+    } catch (e) {
+      console.error("Hint Error:", e);
+    }
+  },
+  
+  showHintUI(hintText) {
+    const hintTextEl = document.querySelector('#hint-card .hint-text');
+    if (hintTextEl) {
+      hintTextEl.innerHTML = `<span>${hintText}</span>`;
+      
+      const card = document.getElementById('hint-card');
+      if (card) {
+        card.classList.remove('flash-highlight');
+        void card.offsetWidth; // Trigger reflow
+        card.classList.add('flash-highlight');
+      }
+    }
+  },
+
+  restart() {
+    this.start();
+  },
+
+  resume() {
+    // Resume from saved state (legacy — simplified)
+    const saved = window.Storage ? Storage.getData().gameState : null;
+    if (!saved) return;
+    // For now just start a new game (saved state won't have server word anymore)
+    this.start();
+  },
+
+  quitToHome() {
+    this.resetState();
+    document.getElementById("pause-btn")?.classList.add("hidden");
+    UI.showScreen("dashboard");
+  },
+
+  saveProgress() {
+    // Simplified — server has the word, so we can't fully restore
+    // But we save what we can for UI continuity
+    if (window.Storage) {
+      const data = Storage.getData();
+      const stateCopy = { ...this.state };
+      stateCopy.timerInterval = null;
+      data.gameState = stateCopy;
+      Storage.saveData(data);
+    }
   },
 };

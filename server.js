@@ -12,7 +12,35 @@
  * - Passwords hashed with bcrypt before storage
  */
 
-require("dotenv").config();
+const fs = require('fs');
+const path = require('path');
+// Load .env allowing override for safety, but checking first
+const dotenv = require("dotenv");
+const envConfig = dotenv.parse(fs.readFileSync(path.join(__dirname, '.env')));
+
+// 1. Snapshot Pre-load (OS Key)
+const osKey = process.env.GEMINI_API_KEY;
+
+// Load env vars
+dotenv.config();
+
+// 2. Parsed File Content
+const fileKey = envConfig.GEMINI_API_KEY;
+
+console.log("\n--- 🕵️ API KEY AUDIT ---");
+console.log(`[OS/Shell] Key: ${osKey ? osKey.substring(0, 10) + '...' : 'UNDEFINED'}`);
+console.log(`[.env File] Key: ${fileKey ? fileKey.substring(0, 10) + '...' : 'UNDEFINED'}`);
+
+if (osKey && osKey !== fileKey) {
+  console.error("🚨 CRITICAL MISMATCH: System is forcing an OLD key. Ignoring .env file.");
+  console.log("👉 ACTION: Forcing override with .env value...");
+  // FORCE Fix:
+  process.env.GEMINI_API_KEY = fileKey;
+  console.log("✅ FORCED .env key to be active.");
+} else {
+  console.log("✅ Key matches or loaded correctly.");
+}
+console.log("------------------------\n");
 const express = require("express");
 const cors = require("cors");
 
@@ -64,6 +92,336 @@ app.use(cors());
 // FIX: Explicit body size limit for security (prevents large payload attacks)
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(__dirname));
+
+// ==================================
+// GAME LOGIC & WORD BANK
+// ==================================
+
+const WORD_MARKDOWN_PATH = "C:\\Users\\lenovo\\.gemini\\antigravity\\scratch\\guess_the_word_dataset\\master_word_bank.md";
+const WORD_CACHE = {
+    all: [] // Array of { word, category, pos, difficulty }
+};
+const HINT_CACHE = new Map(); // word -> hint string (populated on demand)
+const ACTIVE_GAMES = new Map(); // userId -> { word, length, startTime, category, pos }
+
+function loadWordsFromMarkdown() {
+    try {
+        if (!fs.existsSync(WORD_MARKDOWN_PATH)) {
+            console.error("❌ Word bank file not found:", WORD_MARKDOWN_PATH);
+            return;
+        }
+
+        const content = fs.readFileSync(WORD_MARKDOWN_PATH, 'utf-8');
+        const lines = content.split('\n');
+        let count = 0;
+        let currentCategory = "General";
+
+        lines.forEach(line => {
+             // Track category headers: ## CATEGORY 01: 😊 Emotions & Feelings
+             const catMatch = line.match(/^##\s+CATEGORY\s+\d+:\s*(.+)/i);
+             if (catMatch) {
+                 // Strip emoji and trim
+                 currentCategory = catMatch[1].replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+                 return;
+             }
+
+             // Parse table rows: | 001 | love | 4 | Noun | Easy |
+             const parts = line.split('|').map(p => p.trim());
+             if (parts.length >= 6 && parts[2]) {
+                 const word = parts[2].toUpperCase();
+                 const pos = parts[4] || "Word";
+                 const diff = parts[5] || "Medium";
+                 // Skip header rows, separator rows, and short words
+                 if (word === 'WORD' || word === '---' || word.length < 3) return;
+                 if (/^[A-Z]{3,}$/.test(word)) {
+                     WORD_CACHE.all.push({
+                         word,
+                         category: currentCategory,
+                         pos: pos,
+                         difficulty: diff
+                     });
+                     count++;
+                 }
+             }
+        });
+
+        console.log(`✅ Loaded ${count} words from Markdown into memory.`);
+    } catch (e) {
+        console.error("❌ Failed to load word bank:", e);
+    }
+}
+
+// Load immediately on start
+loadWordsFromMarkdown();
+
+// Load pre-generated hints for 6+ letter words
+try {
+    const hintsPath = require('path').join(__dirname, 'data', 'hints.json');
+    if (fs.existsSync(hintsPath)) {
+        const hintsData = JSON.parse(fs.readFileSync(hintsPath, 'utf-8'));
+        for (const [word, hint] of Object.entries(hintsData)) {
+            HINT_CACHE.set(word, hint);
+        }
+        console.log(`💡 Loaded ${HINT_CACHE.size} pre-generated hints.`);
+    }
+} catch (e) {
+    console.warn("⚠️ Could not load hints.json:", e.message);
+}
+
+// ==================================
+// GAME ROUTES
+// ==================================
+
+/**
+ * GET /api/game/start
+ * Starts a new game with a RANDOM word from the bank.
+ */
+app.post("/api/game/start", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        let userId = req.headers['x-guest-id'] || ("guest_" + Date.now()); // Use x-guest-id for guests
+
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            const token = authHeader.split(" ")[1];
+            const payload = verifySessionToken(token);
+            if (payload) userId = payload.userId;
+        }
+
+        if (WORD_CACHE.all.length === 0) {
+            return res.status(500).json({ error: "Word bank is empty" });
+        }
+
+        // Pick completely random word object
+        const validWords = WORD_CACHE.all;
+        const entry = validWords[Math.floor(Math.random() * validWords.length)];
+        
+        // Create game session
+        const game = {
+            word: entry.word,
+            length: entry.word.length,
+            category: entry.category,
+            pos: entry.pos,
+            difficulty: entry.difficulty,
+            startTime: Date.now(),
+            hintUsed: false
+        };
+        
+        // Store game state with metadata
+        ACTIVE_GAMES.set(userId, game);
+
+        // Generate/Get Hint (Universal - for all words)
+        let hint = null;
+        // Check cache first (for rich/riddle hints)
+        hint = HINT_CACHE.get(entry.word);
+        
+        // If no cached hint, generate metadata-based hint
+        if (!hint) {
+            const hints = [];
+            
+            // "Easier" logic for longer words: Reveal the starting letter
+            if (entry.word.length >= 7) {
+                hints.push(`Starts with ${entry.word[0].toUpperCase()}`);
+            }
+
+            if (entry.category && entry.category !== "General") hints.push(`Category: ${entry.category}`);
+            if (entry.pos) hints.push(`It's a ${entry.pos.toLowerCase()}`);
+            hints.push(`${entry.word.length} letters`);
+            
+            hint = hints.join(" · ");
+            // Cache it (basic version)
+            HINT_CACHE.set(entry.word, hint);
+        }
+        
+        // Mark as used since we are showing it by default to everyone now
+        game.hintUsed = true;
+
+        res.json({ 
+            length: entry.word.length,
+            hasHint: entry.word.length > 5, 
+            hint: hint, // Send hint content
+            message: "Game started"
+        });
+
+    } catch (error) {
+        console.error("Link Start Error:", error);
+        res.status(500).json({ error: "Failed to start game" });
+    }
+});
+
+/**
+ * POST /api/check-guess
+ * Validates a user's guess
+ */
+app.post("/api/check-guess", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        let userId = "guest"; 
+        // For guest logic, we might need a session ID if we want to support it properly,
+        // but existing frontend sends Bearer token even for guests sometimes? 
+        // The implementation_plan.md says "stores in ACTIVE_GAMES map storing userId". 
+        // If the user is unauthenticated, the previous step generated "guest_" + timestamp.
+        // The frontend needs to send this back. 
+        // Actually, the frontend `Auth` module manages tokens. 
+        // If guest, it likely doesn't send a token?
+        // Let's assume for this refactor we require the client to handle the session or we use the token.
+        // The original code used `Auth.currentUser.id` or 'guest'.
+        // To make this robust, the /api/game/start should probably return a session/gameId if not auth'd.
+        // But to keep it simple and match existing patterns behavior:
+        
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            const token = authHeader.split(" ")[1];
+            const payload = verifySessionToken(token);
+            if (payload) userId = payload.userId;
+        } else {
+             // If no token, we can't track the game solely by "guest" unless we pass a gameID.
+             // For now, let's assume the frontend will pass a temporary guest ID if implemented,
+             // OR we enforce that even guests get a temp token?
+             // Let's rely on the frontend sending the same token or ID.
+             // If the frontend generated "guest" ID is passed in body? No, standard is headers.
+             
+             // Simplification: We will fallback to looking for a custom header or body param if needed,
+             // but `verifySessionToken` checks our session.
+             // Implementation detail: we need to ensure the "guest" from start() matches here.
+             // Changes: start() gen'd a ID. Client needs it.
+             // Let's accept `x-guest-id` header for guests.
+             userId = req.headers['x-guest-id'] || 'guest';
+        }
+
+        const { guess } = req.body;
+        if (!guess) return res.status(400).json({ error: "Guess required" });
+
+        const game = ACTIVE_GAMES.get(userId);
+
+        if (!game) {
+             return res.status(404).json({ error: "No active game found. Start a new game." });
+        }
+
+        const target = game.word;
+        const evaluation = evaluateGuess(guess.toUpperCase(), target);
+        const correct = (guess.toUpperCase() === target);
+
+        // Check if game over (loss)
+        // We can't easily track attempts remaining on server unless we store it or pass it.
+        // But the client tracks attempts. 
+        // Let's just return the word if correct OR if we want to reveal it.
+        // Actually, let's always return the word if correct.
+        // If incorrect, we don't return it. 
+        // The client can decide when to show it (e.g. after max attempts).
+        // BUT the client doesn't know the word!
+        // So we need a way to "give up" or "end game".
+        // Or, we just send it if correct. 
+        // For loss, the client needs to ask "what was it?".
+        // Let's add a `target` field to the response, but only populate it if correct OR if we add a 'reveal' flag in request?
+        // Simplest: The client knows when max attempts are reached.
+        // But the client can't request the word securely without a separate endpoint or flag.
+        // Let's add a `reveal` flag to the request body?
+        // "guess": ".....", "reveal": true (if last attempt).
+        // Or just `target: correct ? target : null`. 
+        // For loss, users will see "???" unless we change this.
+        
+        // Let's return `solution` field if correct.
+        // And maybe the client handles loss by showing "???".
+        // If the user REALLY wants to see the word, we can add a /api/game/reveal endpoint later.
+        
+        // Update: User might want to see the word on loss.
+        // Let's just return it if correct.
+        
+        res.json({
+            correct,
+            evaluation,
+            solution: correct ? target : null
+        });
+
+    } catch (error) {
+        console.error("Check Guess Error:", error);
+        res.status(500).json({ error: "Validation failed" });
+    }
+});
+
+// Helper: Evaluate Guess (moved from frontend)
+function evaluateGuess(guess, target) {
+    const res = Array(guess.length).fill("absent");
+    const targetArr = target.split("");
+    const guessArr = guess.split("");
+
+    // 1. Find Greens
+    guessArr.forEach((char, i) => {
+      if (char === targetArr[i]) {
+        res[i] = "correct";
+        targetArr[i] = null;
+        guessArr[i] = null;
+      }
+    });
+
+    // 2. Find Yellows
+    guessArr.forEach((char, i) => {
+      if (char && targetArr.includes(char)) {
+        res[i] = "present";
+        const idx = targetArr.indexOf(char);
+        targetArr[idx] = null;
+      }
+    });
+
+    return res;
+}
+
+app.post("/api/game/reveal", (req, res) => {
+    const authHeader = req.headers.authorization;
+    let userId = req.headers['x-guest-id'] || 'guest';
+    
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split(" ")[1];
+        const payload = verifySessionToken(token);
+        if (payload) userId = payload.userId;
+    }
+    
+    const game = ACTIVE_GAMES.get(userId);
+    if (!game) return res.status(404).json({ error: "No game" });
+    res.json({ word: game.word });
+});
+
+// Hint endpoint — returns category + POS hint for words > 5 letters
+app.post("/api/game/hint", (req, res) => {
+    const authHeader = req.headers.authorization;
+    let userId = req.headers['x-guest-id'] || 'guest';
+    
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split(" ")[1];
+        const payload = verifySessionToken(token);
+        if (payload) userId = payload.userId;
+    }
+    
+    const game = ACTIVE_GAMES.get(userId);
+    if (!game) return res.status(404).json({ error: "No active game" });
+    
+    if (game.word.length <= 5) {
+        return res.json({ hint: null, message: "Hints only for words with 6+ letters" });
+    }
+    
+    game.hintUsed = true;
+    
+    // Check cached hint first
+    const cachedHint = HINT_CACHE.get(game.word);
+    if (cachedHint) {
+        return res.json({ hint: cachedHint, hintUsed: true });
+    }
+    
+    // Generate hint from metadata
+    const hints = [];
+    if (game.category && game.category !== "General") {
+        hints.push(`Category: ${game.category}`);
+    }
+    if (game.pos) {
+        hints.push(`It's a ${game.pos.toLowerCase()}`);
+    }
+    hints.push(`${game.word.length} letters`);
+    
+    const hint = hints.join(" · ");
+    HINT_CACHE.set(game.word, hint);
+    
+    res.json({ hint, hintUsed: true });
+});
+
 
 // ==================================
 // HELPER FUNCTIONS
@@ -805,6 +1163,8 @@ app.post("/api/generate-word", async (req, res) => {
   try {
     const { length, excludeWords = [] } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
+    // Use configured model or fallback to a stable default
+    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
     if (!apiKey) {
       return res
@@ -813,7 +1173,7 @@ app.post("/api/generate-word", async (req, res) => {
     }
 
     console.log(
-      `[API] Request: ${length} letters, exclude ${excludeWords.length} words`,
+      `[API] Request: ${length} letters, exclude ${excludeWords.length} words (Model: ${model})`,
     );
 
     // Generate a random seed for uniqueness
@@ -840,7 +1200,7 @@ Rules:
 Think of an unusual but valid ${length}-letter word that would be fun to guess.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -852,6 +1212,7 @@ Think of an unusual but valid ${length}-letter word that would be fun to guess.`
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[API] Gemini Error (${response.status}):`, errorText);
       throw new Error(`API Request Failed: ${response.status} ${errorText}`);
     }
 

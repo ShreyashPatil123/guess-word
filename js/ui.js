@@ -81,7 +81,7 @@ window.UI = {
         const { buttons, inputs } = this.elements;
 
         // Navigation (all use optional chaining to prevent crashes if element is missing)
-        buttons.newGame?.addEventListener('click', () => this.showScreen('difficulty'));
+        buttons.newGame?.addEventListener('click', () => Game.start());
         buttons.continue?.addEventListener('click', () => Game.resume());
         buttons.backToDash?.addEventListener('click', () => this.showScreen('dashboard'));
         
@@ -159,13 +159,7 @@ window.UI = {
              this.closeModals();
         });
 
-        // Difficulty Selection
-        document.querySelectorAll('.diff-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const level = parseInt(card.dataset.level);
-                Game.start(level);
-            });
-        });
+        // Difficulty Selection removed — Game.start() picks a random word
 
         // Modals
         
@@ -184,6 +178,12 @@ window.UI = {
         buttons.pause?.addEventListener('click', () => {
             Game.pause();
             this.showModal('pause');
+        });
+
+        // Hint Button
+        document.getElementById('hint-btn')?.addEventListener('click', () => {
+            if (window.AudioController) AudioController.play('click');
+            Game.requestHint();
         });
 
         buttons.resume?.addEventListener('click', () => {
