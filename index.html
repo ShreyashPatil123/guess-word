@@ -28,6 +28,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/multiplayer.css" />
     <link rel="stylesheet" href="css/mobile.css" />
     <link rel="stylesheet" href="css/responsive.css" />
     <link rel="stylesheet" href="css/leaderboard.css" />
@@ -651,6 +652,52 @@
         </div>
       </section>
 
+      <!-- Multiplayer Game Screen -->
+      <section id="multiplayer-game-screen" class="screen hidden">
+        <header>
+          <div class="header-left">
+             <h2>Round <span id="multi-round">1</span>/5</h2>
+          </div>
+          <div id="multi-timer" class="timer-display">01:00</div>
+        </header>
+
+        <!-- Giver View -->
+        <div id="giver-view" class="hidden" style="text-align:center; padding: 20px;">
+           <h2>You are the Word Giver!</h2>
+           <p>Choose a secret word and provide a hint.</p>
+           <div class="auth-input-group" style="margin: 20px auto; max-width: 300px;">
+             <input type="text" id="giver-word-input" placeholder="Secret Word (3-8 letters)" maxlength="8">
+             <input type="text" id="giver-hint-input" placeholder="Hint..." style="margin-top: 10px;">
+           </div>
+           <button id="submit-word-hint-btn" class="btn primary">Submit Word & Hint</button>
+           <p id="giver-status-msg" class="pause-info hidden" style="margin-top: 15px;"></p>
+        </div>
+
+        <!-- Guesser View -->
+        <div id="guesser-view" class="hidden" style="text-align:center; padding: 20px;">
+           <h3 id="multi-hint-text">Waiting for giver...</h3>
+           <div id="multi-word-slots" class="grid-container" style="margin: 20px auto; display: flex; justify-content: center; gap: 5px;">
+              <!-- slots -->
+           </div>
+           <div class="auth-input-group flex-row" style="display:flex; gap:10px; max-width: 300px; margin: 0 auto;">
+             <input type="text" id="multi-guess-input" placeholder="Your guess...">
+             <button id="submit-multi-guess-btn" class="btn primary">Guess</button>
+           </div>
+           <p id="guesser-status-msg" style="margin-top: 15px; font-weight: bold;"></p>
+        </div>
+
+        <!-- Round Results View -->
+        <div id="round-results-view" class="hidden" style="text-align:center; padding: 20px;">
+           <h2>Round Finished!</h2>
+           <p>The word was:</p>
+           <div id="round-word-reveal" class="highlight-word" style="margin: 10px auto;">WORD</div>
+           <h3>Leaderboard</h3>
+           <ul id="round-leaderboard-list" style="list-style: none; padding: 0; max-width: 300px; margin: 10px auto; text-align: left;">
+           </ul>
+           <p class="pause-info" style="margin-top: 20px;">Next round starting soon...</p>
+        </div>
+      </section>
+
       <!-- Modals -->
       <div id="modal-container" class="modal-backdrop hidden">
         <!-- Pause Modal -->
@@ -694,6 +741,52 @@
 
 
     <!-- Additional Modals -->
+        <!-- Mode Select Modal -->
+        <div id="mode-select-modal" class="modal hidden">
+            <h2>Select Game Mode</h2>
+            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                <button id="mode-single-btn" class="btn primary">Single Player</button>
+                <button id="mode-multi-btn" class="btn secondary">Online Multiplayer</button>
+            </div>
+        </div>
+
+        <!-- Multiplayer Lobby Modal -->
+        <div id="lobby-modal" class="modal hidden">
+            <!-- Menu View -->
+            <div id="lobby-menu-view">
+                <h2>Online Multiplayer</h2>
+                <div class="auth-input-group">
+                    <label>Your Name</label>
+                    <input type="text" id="multi-player-name" placeholder="Enter your name" maxlength="15">
+                </div>
+                <div class="modal-actions" style="margin-top: 15px;">
+                    <button id="create-party-btn" class="btn primary">Create Party</button>
+                </div>
+                <div style="margin: 15px 0; text-align: center;">OR</div>
+                <div class="auth-input-group flex-row" style="display:flex; gap:10px;">
+                    <input type="text" id="party-code-input" placeholder="Party Code (8 chars)" maxlength="8" style="text-transform: uppercase;">
+                    <button id="join-party-btn" class="btn secondary">Join</button>
+                </div>
+            </div>
+            
+            <!-- Room View -->
+            <div id="lobby-room-view" class="hidden">
+                <h2>Party Lobby</h2>
+                <div class="party-info" style="margin-bottom: 15px;">
+                    <div>Code: <strong id="display-party-code" class="highlight"></strong></div>
+                    <div>Players: <span id="player-count">0</span>/8</div>
+                </div>
+                <ul id="lobby-player-list" class="player-list" style="list-style: none; padding: 0; margin-bottom: 15px; max-height: 150px; overflow-y: auto;">
+                    <!-- Li elements dynamically added -->
+                </ul>
+                <p id="waiting-msg" class="pause-info">Waiting for players...</p>
+                <div class="modal-actions">
+                    <button id="start-multi-game-btn" class="btn primary hidden">Start Game</button>
+                    <button id="leave-lobby-btn" class="btn danger">Leave</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tutorial Modal ("How to Play") -->
         <div id="tutorial-modal" class="modal hidden">
             <h2>How to Play</h2>
@@ -1021,6 +1114,8 @@
     <script src="js/ui.js"></script>
     <script src="js/scoring.js"></script>
     <script src="js/progress.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/multiplayer.js"></script>
     <script src="js/game.js"></script>
   </body>
 </html>

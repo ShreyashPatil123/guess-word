@@ -11,7 +11,8 @@ window.UI = {
             dashboard: document.getElementById('dashboard'),
             difficulty: document.getElementById('difficulty-selection'),
             game: document.getElementById('game-board-area'),
-            leaderboard: document.getElementById('leaderboard-screen')
+            leaderboard: document.getElementById('leaderboard-screen'),
+            'multiplayer-game-screen': document.getElementById('multiplayer-game-screen')
         },
             buttons: {
             continue: document.getElementById('continue-game-btn'),
@@ -38,7 +39,9 @@ window.UI = {
             result: document.getElementById('result-modal'),
             settings: document.getElementById('settings-modal'),
             pause: document.getElementById('pause-modal'),
-            tutorial: document.getElementById('tutorial-modal')
+            tutorial: document.getElementById('tutorial-modal'),
+            'mode-select': document.getElementById('mode-select-modal'),
+            'lobby-modal': document.getElementById('lobby-modal')
         },
         inputs: {
             apiKey: document.getElementById('api-key-input'),
@@ -81,7 +84,9 @@ window.UI = {
         const { buttons, inputs } = this.elements;
 
         // Navigation (all use optional chaining to prevent crashes if element is missing)
-        buttons.newGame?.addEventListener('click', () => Game.start());
+        buttons.newGame?.addEventListener('click', () => {
+            this.showModal('mode-select');
+        });
         buttons.continue?.addEventListener('click', () => Game.resume());
         buttons.backToDash?.addEventListener('click', () => this.showScreen('dashboard'));
         

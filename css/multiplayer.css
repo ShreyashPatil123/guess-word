@@ -1,0 +1,33 @@
+/* Multiplayer Styles */
+#lobby-player-list {
+    background: var(--surface-bg);
+    border-radius: var(--radius-md);
+    padding: 10px;
+}
+#lobby-player-list li {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+}
+#lobby-player-list li:last-child {
+    border-bottom: none;
+}
+#lobby-player-list li.host {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+#lobby-player-list li.me {
+    font-style: italic;
+}
+.word-slot {
+    width: 40px;
+    height: 50px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 3px solid var(--text-primary);
+    line-height: 50px;
+    margin: 0 5px;
+    color: var(--text-primary);
+}

@@ -1657,15 +1657,23 @@ app.post("/api/achievements/unlock", async (req, res) => {
   }
 });
 
+const http = require("http");
+const { Server } = require("socket.io");
+const { setupSocketEvents } = require("./server/socketHandler");
+
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+setupSocketEvents(io);
+
 // ==================================
 // START SERVER
 // ==================================
 if (require.main === module) {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`\n🎮 Guess the Word Server`);
     console.log(`   Running at http://localhost:${PORT}`);
     console.log(`   Auth: Email + Password (OTP signup)\n`);
   });
 }
 
-module.exports = app;
+module.exports = server;
