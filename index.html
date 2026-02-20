@@ -308,14 +308,27 @@
             id="hint-btn"
             class="icon-btn hidden"
             aria-label="Get Hint"
-            title="Get Hint"
+            title="Get Hint (-10%)"
           >
+            <span class="btn-badge" id="hint-cost">-10%</span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" style="display:none"/> <!-- hiding default map pin icon if that was it, using lightbulb below -->
               <path d="M9 21h6M12 3a7 7 0 0 0-7 7c0 3.32 2.67 7.25 8 11.25V21zM9 21h6" stroke="none" /> 
-              <!-- Simple Lightbulb Icon -->
               <path d="M9 21h6"></path>
               <path d="M12 3a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-1.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+            </svg>
+          </button>
+
+          <!-- Reveal Letter Button -->
+          <button
+            id="reveal-btn"
+            class="icon-btn hidden"
+            aria-label="Reveal Letter"
+            title="Reveal Letter (-15%)"
+          >
+            <span class="btn-badge warning">-15%</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
           </button>
           
@@ -646,6 +659,7 @@
           <p class="pause-info">Take your time!</p>
           <div class="modal-actions">
             <button id="resume-btn" class="btn primary">Resume</button>
+            <button id="reveal-word-btn" class="btn danger">Give Up & Reveal</button>
             <button id="pause-home-btn" class="btn secondary">
               Back to Home
             </button>

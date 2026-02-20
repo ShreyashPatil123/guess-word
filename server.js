@@ -49,7 +49,7 @@ const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 3000;
 
 // ==================================
 // CONFIGURATION
@@ -103,6 +103,34 @@ const WORD_CACHE = {
 };
 const HINT_CACHE = new Map(); // word -> hint string (populated on demand)
 const ACTIVE_GAMES = new Map(); // userId -> { word, length, startTime, category, pos }
+
+const CATEGORY_DEFINITIONS = {
+    "Emotions & Feelings": "Related to a psychological state or mood.",
+    "Actions & Movement Verbs": "Describes a physical action or process.",
+    "Thinking & Communication Verbs": "Involves mental processes or speech.",
+    "Home & Household Objects": "A common object found in a living space.",
+    "Food & Drink": "Something edible or potable.",
+    "Nature & Environment": "Related to the natural world or outdoors.",
+    "Animals & Living Things": "A living creature or organism.",
+    "People & Relationships": "Concerning humans or social bonds.",
+    "Body & Health": "Relates to physical anatomy or well-being.",
+    "⏰ Time & Sequence": "Deals with duration, order, or moments.",
+    "Work & Career": "Related to professional life or employment.",
+    "Money & Economy": "Involves finance, value, or trade.",
+    "Education & Knowledge": "Pertains to learning or information.",
+    "Arts & Creativity": "Connected to expression or culture.",
+    "Sports & Games": "Related to competition or recreation.",
+    "Travel & Places": "Involves locations or movement.",
+    "Tools & Technology": "A device or instrument.",
+    "Colours & Appearance": "Describes how something looks.",
+    "Size, Shape & Quantity": "Describes dimensions or amounts.",
+    "️ Texture, Temperature & Senses": "Related to physical sensation.",
+    "Social & Society": "Pertains to community or interaction.",
+    "️ Ethics, Law & Justice": "Related to rules, morals, or legality.",
+    "Science & Nature Concepts": "A fundamental principle or natural phenomenon.",
+    "Everyday Adjectives": "Used to describe common qualities.",
+    "Mixed High-Frequency Words": "A very common word in the English language."
+};
 
 function loadWordsFromMarkdown() {
     try {
@@ -176,10 +204,74 @@ try {
  * GET /api/game/start
  * Starts a new game with a RANDOM word from the bank.
  */
+// ==================================
+// GEMINI INTEGRATION & HINT LOGIC
+// ==================================
+
+// Helper to call Gemini AI (with timeout)
+async function callGemini(prompt, systemInstruction = "You are a helpful game assistant.") {
+    if (!process.env.GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+    try {
+        const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+        console.log(`[Gemini] Using model: ${model}`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: { responseMimeType: "application/json" }
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Gemini] API Usage Error (${response.status}):`, errorText);
+            throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        // DEBUG LOG
+        // console.log("[Gemini] Raw Response:", text);
+
+        if (!text) {
+             console.error("[Gemini] Empty response data:", JSON.stringify(data));
+             throw new Error("Empty response from Gemini");
+        }
+
+        try {
+            return JSON.parse(text); 
+        } catch (e) {
+            console.error("[Gemini] JSON Parse Error. Raw Text:", text);
+            throw e;
+        }
+
+    } catch (error) {
+        clearTimeout(timeout);
+        console.error("[Gemini] Exception:", error.message);
+        throw error;
+    }
+}
+
+
+/**
+ * POST /api/game/start
+ * Starts a new game with a RANDOM word from the bank.
+ */
 app.post("/api/game/start", async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
-        let userId = req.headers['x-guest-id'] || ("guest_" + Date.now()); // Use x-guest-id for guests
+        let userId = req.headers['x-guest-id'] || ("guest_" + Date.now()); 
 
         if (authHeader && authHeader.startsWith("Bearer ")) {
             const token = authHeader.split(" ")[1];
@@ -195,51 +287,34 @@ app.post("/api/game/start", async (req, res) => {
         const validWords = WORD_CACHE.all;
         const entry = validWords[Math.floor(Math.random() * validWords.length)];
         
-        // Create game session
+        // Create game session with EXPANDED state
         const game = {
             word: entry.word,
             length: entry.word.length,
             category: entry.category,
             pos: entry.pos,
-            difficulty: entry.difficulty,
             startTime: Date.now(),
-            hintUsed: false
+            
+            // New Progressive Hint State
+            hintPack: null,              // Will hold { level1, level2, level3 }
+            hintPackStatus: "pending",   // pending | ready | failed
+            hintLevelUsed: 0,            // 0 = none, 1 = lvl1 used, etc.
+            revealedPositions: {},       // Map-like Object { index: char }
+            guesses: [],                 // Array of previous guesses
+            scoreMultiplier: 1.0,        // Starts at 1.0 (100%)
+            finalScore: 0                // Calculated at game end
         };
         
-        // Store game state with metadata
+        // Store game state
         ACTIVE_GAMES.set(userId, game);
 
-        // Generate/Get Hint (Universal - for all words)
-        let hint = null;
-        // Check cache first (for rich/riddle hints)
-        hint = HINT_CACHE.get(entry.word);
-        
-        // If no cached hint, generate metadata-based hint
-        if (!hint) {
-            const hints = [];
-            
-            // "Easier" logic for longer words: Reveal the starting letter
-            if (entry.word.length >= 7) {
-                hints.push(`Starts with ${entry.word[0].toUpperCase()}`);
-            }
-
-            if (entry.category && entry.category !== "General") hints.push(`Category: ${entry.category}`);
-            if (entry.pos) hints.push(`It's a ${entry.pos.toLowerCase()}`);
-            hints.push(`${entry.word.length} letters`);
-            
-            hint = hints.join(" · ");
-            // Cache it (basic version)
-            HINT_CACHE.set(entry.word, hint);
-        }
-        
-        // Mark as used since we are showing it by default to everyone now
-        game.hintUsed = true;
+        // TRIGGER ASYNC HINT GENERATION (Fire & Forget)
+        generateHintPack(userId, entry.word).catch(err => console.error("Async Hint Gen Failed:", err));
 
         res.json({ 
             length: entry.word.length,
-            hasHint: entry.word.length > 5, 
-            hint: hint, // Send hint content
-            message: "Game started"
+            message: "Game started",
+            // Client doesn't need hint immediately, it will request it via /api/game/hint
         });
 
     } catch (error) {
@@ -248,46 +323,88 @@ app.post("/api/game/start", async (req, res) => {
     }
 });
 
+// Async Hint Generator
+async function generateHintPack(userId, word) {
+    const game = ACTIVE_GAMES.get(userId);
+    if (!game) return;
+
+    try {
+        const prompt = `Target word: ${word}`;
+        const systemPrompt = `You are generating hints for a word-guessing game.
+
+ABSOLUTE RULE:
+Each hint MUST be specific to the target word.
+Generic hints are INVALID and must NEVER be generated.
+
+INVALID examples (do NOT do this):
+- "It's a common English word"
+- "Try guessing common letters"
+- "You use this word often"
+- "Think carefully"
+
+If a hint could apply to many unrelated words, it is WRONG.
+
+STRICT CONSTRAINTS:
+- Do NOT reveal the word
+- Do NOT mention letters
+- Do NOT mention word length
+- Do NOT give synonyms or rhymes
+- Do NOT give spelling clues
+- Each hint must relate to meaning, category, or real-world usage
+- Each hint must be under 12 words
+- Hints must grow progressively more specific
+
+HINT LEVELS:
+Level 1 → broad category
+Level 2 → contextual usage
+Level 3 → strong but non-revealing clue
+
+Return ONLY valid JSON.
+No explanations.
+No markdown.
+No extra text.
+
+{
+  "level1": "",
+  "level2": "",
+  "level3": ""
+}`;
+
+        const hints = await callGemini(prompt, systemPrompt);
+        
+        game.hintPack = hints;
+        game.hintPackStatus = "ready";
+        console.log(`[Hint] Generated successfully for ${word} (${userId})`);
+        console.log(`[Hint] Generated successfully for ${word} (${userId})`);
+
+    } catch (error) {
+        console.error(`[Hint] Generation failed for ${word}:`, error.message);
+        // Fallback Strategy (Semantic & No Letter Reveals)
+        const wordLen = word.length;
+        const pos = game.pos || "word"; 
+        const category = game.category || "General";
+        const concept = CATEGORY_DEFINITIONS[category] || "A common English word.";
+
+        game.hintPack = {
+            level1: `It is a ${wordLen}-letter ${pos}.`, // Structure
+            level2: `${concept}`, // Concept (Vague Meaning)
+            level3: `It belongs to the category: ${category}.` // Domain (Specific)
+        };
+        game.hintPackStatus = "ready"; // Ready with fallbacks
+        console.warn(`[Hint] Using SEMANTIC FALLBACK hints for ${word}`);
+    }
+
+}
+
 /**
  * POST /api/check-guess
  * Validates a user's guess
  */
 app.post("/api/check-guess", async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        let userId = "guest"; 
-        // For guest logic, we might need a session ID if we want to support it properly,
-        // but existing frontend sends Bearer token even for guests sometimes? 
-        // The implementation_plan.md says "stores in ACTIVE_GAMES map storing userId". 
-        // If the user is unauthenticated, the previous step generated "guest_" + timestamp.
-        // The frontend needs to send this back. 
-        // Actually, the frontend `Auth` module manages tokens. 
-        // If guest, it likely doesn't send a token?
-        // Let's assume for this refactor we require the client to handle the session or we use the token.
-        // The original code used `Auth.currentUser.id` or 'guest'.
-        // To make this robust, the /api/game/start should probably return a session/gameId if not auth'd.
-        // But to keep it simple and match existing patterns behavior:
-        
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            const token = authHeader.split(" ")[1];
-            const payload = verifySessionToken(token);
-            if (payload) userId = payload.userId;
-        } else {
-             // If no token, we can't track the game solely by "guest" unless we pass a gameID.
-             // For now, let's assume the frontend will pass a temporary guest ID if implemented,
-             // OR we enforce that even guests get a temp token?
-             // Let's rely on the frontend sending the same token or ID.
-             // If the frontend generated "guest" ID is passed in body? No, standard is headers.
-             
-             // Simplification: We will fallback to looking for a custom header or body param if needed,
-             // but `verifySessionToken` checks our session.
-             // Implementation detail: we need to ensure the "guest" from start() matches here.
-             // Changes: start() gen'd a ID. Client needs it.
-             // Let's accept `x-guest-id` header for guests.
-             userId = req.headers['x-guest-id'] || 'guest';
-        }
-
+        const userId = getUserIdFromReq(req);
         const { guess } = req.body;
+        
         if (!guess) return res.status(400).json({ error: "Guess required" });
 
         const game = ACTIVE_GAMES.get(userId);
@@ -299,37 +416,22 @@ app.post("/api/check-guess", async (req, res) => {
         const target = game.word;
         const evaluation = evaluateGuess(guess.toUpperCase(), target);
         const correct = (guess.toUpperCase() === target);
+        
+        // Track Guess
+        game.guesses.push(guess.toUpperCase());
 
-        // Check if game over (loss)
-        // We can't easily track attempts remaining on server unless we store it or pass it.
-        // But the client tracks attempts. 
-        // Let's just return the word if correct OR if we want to reveal it.
-        // Actually, let's always return the word if correct.
-        // If incorrect, we don't return it. 
-        // The client can decide when to show it (e.g. after max attempts).
-        // BUT the client doesn't know the word!
-        // So we need a way to "give up" or "end game".
-        // Or, we just send it if correct. 
-        // For loss, the client needs to ask "what was it?".
-        // Let's add a `target` field to the response, but only populate it if correct OR if we add a 'reveal' flag in request?
-        // Simplest: The client knows when max attempts are reached.
-        // But the client can't request the word securely without a separate endpoint or flag.
-        // Let's add a `reveal` flag to the request body?
-        // "guess": ".....", "reveal": true (if last attempt).
-        // Or just `target: correct ? target : null`. 
-        // For loss, users will see "???" unless we change this.
-        
-        // Let's return `solution` field if correct.
-        // And maybe the client handles loss by showing "???".
-        // If the user REALLY wants to see the word, we can add a /api/game/reveal endpoint later.
-        
-        // Update: User might want to see the word on loss.
-        // Let's just return it if correct.
-        
+        // Calculate Final Score if Correct
+        if (correct) {
+            // Assumed Base Score = 100
+             game.finalScore = Math.round(100 * game.scoreMultiplier); 
+        }
+
         res.json({
             correct,
             evaluation,
-            solution: correct ? target : null
+            solution: correct ? target : null,
+            scoreMultiplier: game.scoreMultiplier,
+            revealedPositions: game.revealedPositions
         });
 
     } catch (error) {
@@ -380,47 +482,255 @@ app.post("/api/game/reveal", (req, res) => {
     res.json({ word: game.word });
 });
 
-// Hint endpoint — returns category + POS hint for words > 5 letters
-app.post("/api/game/hint", (req, res) => {
+// ==================================
+// PROGRESSIVE HINT ENDPOINTS
+// ==================================
+
+/**
+ * POST /api/game/hint
+ * Returns the next available hint (Level 1 -> 2 -> 3)
+ * Penalties: Lvl1 (10%), Lvl2 (20%), Lvl3 (30%)
+ */
+app.post("/api/game/hint", async (req, res) => {
+    try {
+        const userId = getUserIdFromReq(req);
+        const game = ACTIVE_GAMES.get(userId);
+        
+        if (!game) return res.status(404).json({ error: "No active game" });
+        
+        // Block if generation is still pending
+        if (game.hintPackStatus === "pending") {
+            // Simple polling wait (max 4 seconds)
+            for (let i = 0; i < 20; i++) {
+                await new Promise(r => setTimeout(r, 200));
+                if (game.hintPackStatus !== "pending") break;
+            }
+        }
+
+        // Determine current level to serve (next level)
+        const nextLevel = game.hintLevelUsed + 1;
+
+        if (nextLevel > 3) {
+            return res.status(400).json({ error: "No more hints available" });
+        }
+
+        let hintText = null;
+        let penalty = 0;
+
+        // Level 1: Static from Pack
+        if (nextLevel === 1) {
+            hintText = game.hintPack?.level1 || "It's a common English word.";
+        }
+        // Level 2 & 3: Try Dynamic if guesses exist, else Fallback to Pack
+        else if (nextLevel === 2 || nextLevel === 3) {
+            // Only use dynamic if user has actually guessed (to give board-aware hints)
+            if (game.guesses.length > 0) {
+                 try {
+                     // Generate Dynamic Hint
+                     const dynamicHint = await generateDynamicHint(game.word, game.guesses);
+                     if (dynamicHint) {
+                         hintText = dynamicHint;
+                     } else {
+                         hintText = (nextLevel === 2) ? game.hintPack?.level2 : game.hintPack?.level3;
+                     }
+                 } catch (e) {
+                     console.error("Dynamic hint failed:", e);
+                     hintText = (nextLevel === 2) ? game.hintPack?.level2 : game.hintPack?.level3;
+                 }
+            } else {
+                // No guesses? Use static pack.
+                hintText = (nextLevel === 2) ? game.hintPack?.level2 : game.hintPack?.level3;
+            }
+        }
+
+        // Fallbacks if pack missing
+        if (!hintText) {
+             if (nextLevel === 2) hintText = "Often used in daily life.";
+             if (nextLevel === 3) hintText = "Try guessing common letters.";
+        }
+        
+        // Calculate Score Penalty (cumulative)
+        // Lvl 1: 0.10, Lvl 2: 0.20, Lvl 3: 0.30 (Total could be 0.60 if all used?)
+        // OR is it replacement? Plan said "Score penalty: 10%" then "20%". 
+        // Let's assume the cost of unlocking the hint is fixed per level.
+        // But game.scoreMultiplier logic in updateScoreMultiplier handles the total reduction.
+        
+        game.hintLevelUsed = nextLevel;
+        updateScoreMultiplier(game);
+
+        res.json({
+            hint: hintText,
+            level: nextLevel,
+            scoreMultiplier: game.scoreMultiplier
+        });
+
+    } catch (error) {
+        console.error("Hint Error:", error);
+        res.status(500).json({ error: "Failed to get hint" });
+    }
+});
+
+// Dynamic Hint Generator (Level 2/3)
+async function generateDynamicHint(word, guesses) {
+    try {
+        // Calculate board state for the prompt
+        const targetArr = word.split('');
+        const correctPositions = [];
+        const wrongLetters = new Set();
+        
+        // simple analysis of best guess so far? or aggregate?
+        // Let's aggregate knowns from all guesses
+        guesses.forEach(g => {
+            const gArr = g.split('');
+            gArr.forEach((char, i) => {
+                if (char === targetArr[i]) {
+                    correctPositions.push(`${char} at #${i+1}`);
+                } else if (!word.includes(char)) {
+                    wrongLetters.add(char);
+                }
+            });
+        });
+
+        const prompt = `Target word: ${word}
+Guesses so far: ${guesses.join(", ")}
+Correct positions found: ${correctPositions.join(", ") || "None"}
+Wrong letters: ${Array.from(wrongLetters).join(", ") || "None"}
+
+Generate ONE helpful hint that narrows possibilities based on the current board state.`;
+
+        const systemPrompt = `You generate adaptive hints for a word-guessing game.
+
+CRITICAL:
+Hints must respond to the current game state.
+Hints must help strategically WITHOUT revealing the word.
+
+BANNED:
+- Generic advice
+- Letter frequency tips
+- Common-word hints
+- Spelling clues
+
+STRICT RULES:
+- Do NOT reveal the word
+- Do NOT mention letters or positions
+- Do NOT mention word length
+- Do NOT repeat previous hints
+- Under 12 words
+- Must be clearly useful given the guesses
+
+Return ONLY plain text.
+No quotes.
+No explanations.`;
+
+        const hint = await callGemini(prompt, systemPrompt);
+        return hint.trim();
+
+    } catch (error) {
+        console.error("Dynamic Hint Gen Error:", error);
+        return null;
+    }
+}
+
+
+/**
+ * POST /api/game/reveal-letter
+ * Reveals a random unrevealed letter (NOT already guessed correctly)
+ * Penalty: 15% per reveal
+ */
+app.post("/api/game/reveal-letter", (req, res) => {
+    try {
+        const userId = getUserIdFromReq(req);
+        const game = ACTIVE_GAMES.get(userId);
+        if (!game) return res.status(404).json({ error: "No active game" });
+
+        const targetArr = game.word.split("");
+        
+        // Identify Indices that are ELIGIBLE for reveal
+        // 1. Not already revealed by this feedback mechanism
+        // 2. Not already guessed correctly by the user (Green tiles) in ANY previous guess?
+        // Actually, we just check the "correct" positions map?
+        // We don't have a simple map of "correct indices" stored, but we can iterate guesses.
+        
+        const knownIndices = new Set(
+            Object.keys(game.revealedPositions).map(k => parseInt(k))
+        );
+        
+        // Add indices that user already got Green
+        game.guesses.forEach(g => {
+            const gArr = g.split("");
+            gArr.forEach((char, i) => {
+               if (char === targetArr[i]) {
+                   knownIndices.add(i);
+               }
+            });
+        });
+
+        // Available = All indices 0..L-1 MINUS knownIndices
+        const available = [];
+        for (let i = 0; i < game.word.length; i++) {
+            if (!knownIndices.has(i)) {
+                available.push(i);
+            }
+        }
+
+        if (available.length === 0) {
+            return res.status(400).json({ error: "No letters left to reveal!" });
+        }
+
+        // Pick Random
+        const revealIdx = available[Math.floor(Math.random() * available.length)];
+        const letter = targetArr[revealIdx];
+
+        // Update State
+        game.revealedPositions[revealIdx] = letter;
+        updateScoreMultiplier(game);
+
+        res.json({
+            index: revealIdx,
+            letter: letter,
+            penalty: 0.15,
+            scoreMultiplier: game.scoreMultiplier
+        });
+
+    } catch (e) {
+        console.error("Reveal Error:", e);
+        res.status(500).json({ error: "Reveal failed" });
+    }
+});
+
+function getUserIdFromReq(req) {
     const authHeader = req.headers.authorization;
-    let userId = req.headers['x-guest-id'] || 'guest';
-    
     if (authHeader && authHeader.startsWith("Bearer ")) {
         const token = authHeader.split(" ")[1];
         const payload = verifySessionToken(token);
-        if (payload) userId = payload.userId;
+        if (payload) return payload.userId;
     }
+    return req.headers['x-guest-id'] || 'guest';
+}
+
+function updateScoreMultiplier(game) {
+    // semanticPenalty calculation from Plan Part 4
+    // 0.10 for Lvl1 + 0.20 for Lvl2 + 0.30 for Lvl3 (Cumulative)
+    // If hintLevelUsed = 1 -> 0.10
+    // If hintLevelUsed = 2 -> 0.10 + 0.20 = 0.30
+    // If hintLevelUsed = 3 -> 0.10 + 0.20 + 0.30 = 0.60
     
-    const game = ACTIVE_GAMES.get(userId);
-    if (!game) return res.status(404).json({ error: "No active game" });
+    let semanticPenalty = 0;
+    if (game.hintLevelUsed >= 1) semanticPenalty += 0.10;
+    if (game.hintLevelUsed >= 2) semanticPenalty += 0.20;
+    if (game.hintLevelUsed >= 3) semanticPenalty += 0.30;
+
+    // Letter Penalty: 0.15 * count
+    const letterPenalty = Object.keys(game.revealedPositions).length * 0.15;
+
+    const totalPenalty = semanticPenalty + letterPenalty; // Cap at 0.9 handled by max below?
     
-    if (game.word.length <= 5) {
-        return res.json({ hint: null, message: "Hints only for words with 6+ letters" });
-    }
+    // Multiplier = 1 - total
+    // Cap: Min 0.1 score multiplier (Max 0.9 penalty)
+    game.scoreMultiplier = Math.max(0.1, 1.0 - totalPenalty);
     
-    game.hintUsed = true;
-    
-    // Check cached hint first
-    const cachedHint = HINT_CACHE.get(game.word);
-    if (cachedHint) {
-        return res.json({ hint: cachedHint, hintUsed: true });
-    }
-    
-    // Generate hint from metadata
-    const hints = [];
-    if (game.category && game.category !== "General") {
-        hints.push(`Category: ${game.category}`);
-    }
-    if (game.pos) {
-        hints.push(`It's a ${game.pos.toLowerCase()}`);
-    }
-    hints.push(`${game.word.length} letters`);
-    
-    const hint = hints.join(" · ");
-    HINT_CACHE.set(game.word, hint);
-    
-    res.json({ hint, hintUsed: true });
-});
+    return game.scoreMultiplier;
+}
 
 
 // ==================================

@@ -186,6 +186,12 @@ window.UI = {
             Game.requestHint();
         });
 
+        // Reveal Button
+        document.getElementById('reveal-btn')?.addEventListener('click', () => {
+             if (window.AudioController) AudioController.play('click');
+             Game.revealLetter();
+        });
+
         buttons.resume?.addEventListener('click', () => {
             this.closeModals();
             Game.resumeFromPause();
@@ -194,6 +200,14 @@ window.UI = {
         buttons.pauseHome?.addEventListener('click', () => {
             this.closeModals();
             Game.quitToHome();
+        });
+
+        // Give Up & Reveal
+        document.getElementById('reveal-word-btn')?.addEventListener('click', () => {
+             if (confirm("Are you sure you want to give up?")) {
+                 this.closeModals();
+                 Game.revealAndEnd();
+             }
         });
 
         // Tutorial Logic
@@ -424,7 +438,7 @@ window.UI = {
         }, 5000);
     },
 
-    updateGrid(guesses, currentAttempt, currentGuess, maxAttempts, cols) {
+    updateGrid(guesses, currentAttempt, currentGuess, maxAttempts, cols, revealedPositions = []) {
         // 1. Render past guesses
         guesses.forEach((guessObj, r) => {
             const letters = guessObj.word.split('');
@@ -434,19 +448,45 @@ window.UI = {
                     tile.textContent = letter;
                     tile.dataset.state = guessObj.evaluation[c];
                     tile.style.backgroundColor = ''; // relying on css classes via data-state
+                    tile.classList.remove('revealed'); // Clear revealed style if row is submitted
                 }
             });
         });
 
-        // 2. Render current guess buffer
+        // 2. Render current guess buffer (AND REVEALED LETTERS)
         if (currentAttempt < maxAttempts) {
              const buffer = currentGuess.split('');
+             
+             // Convert revealedPositions array/set to easy lookup
+             // revealedPositions is likely an object { index: char } or just indices?
+             // Server sends indices. Game.state keeps a Set or Map?
+             // Let's assume Game passes a Map: { index: char }
+             // If we just have indices, we need the word... which UI doesn't have.
+             // Game.js should pass the Map of { index: char }.
              
              for (let c = 0; c < cols; c++) {
                  const tile = document.getElementById(`tile-${currentAttempt}-${c}`);
                  if (tile) {
-                     tile.textContent = buffer[c] || '';
-                     tile.dataset.state = buffer[c] ? 'active' : 'empty';
+                     // Check if revealed
+                     let char = buffer[c] || '';
+                     let isRevealed = false;
+                     
+                     // Check our revealed map
+                     if (revealedPositions && revealedPositions[c]) {
+                         char = revealedPositions[c];
+                         isRevealed = true;
+                     }
+                     
+                     tile.textContent = char;
+                     tile.dataset.state = char ? 'active' : 'empty';
+                     
+                     if (isRevealed) {
+                         tile.classList.add('revealed');
+                         // tile.dataset.state = 'correct'; // Optional: if we want it green immediately?
+                         // Plan said Gold/Locked. 'revealed' class handles that.
+                     } else {
+                         tile.classList.remove('revealed');
+                     }
                  }
              }
         }

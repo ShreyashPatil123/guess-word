@@ -17,7 +17,8 @@ const ScoringSystem = {
         totalTime = 0,
         // New params for Partial Alphabet Scoring
         guesses = [], // Array of { word, evaluation }
-        targetWord = '' 
+        targetWord = '',
+        penaltyMultiplier = 1.0
     }) {
         const diffConfig = this.config[difficulty];
         if (!diffConfig) {
@@ -107,7 +108,8 @@ const ScoringSystem = {
         }
 
         // --- 3. FINAL SCORE ---
-        const finalScore = fullWordScore + partialAlphabetScore;
+        // Apply Penalty Multiplier (from Hints/Reveals)
+        const finalScore = (fullWordScore + partialAlphabetScore) * penaltyMultiplier;
 
         return {
             wordScore: Math.round(finalScore),
@@ -115,7 +117,8 @@ const ScoringSystem = {
                 attemptScore: Math.round(attemptScore),
                 speedBonus: Math.round(speedBonus),
                 fullWordScore: Math.round(fullWordScore),
-                partialAlphabetScore: Math.round(partialAlphabetScore)
+                partialAlphabetScore: Math.round(partialAlphabetScore),
+                penaltyMultiplier: penaltyMultiplier
             }
         };
     }

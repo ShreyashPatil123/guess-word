@@ -1498,6 +1498,38 @@ video {
   background: linear-gradient(135deg, rgba(106, 170, 100, 0.15), transparent);
 }
 
+/* Revealed Letter Style (Gold/Locked) */
+.tile.revealed {
+  background-color: rgba(241, 196, 15, 0.2) !important;
+  border: 2px solid #f1c40f !important;
+  color: var(--text-primary);
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}
+
+[data-theme="dark"] .tile.revealed {
+  background-color: rgba(241, 196, 15, 0.15) !important;
+  border-color: #f39c12 !important;
+  color: #fff;
+}
+
+/* Badge colors for Hint/Reveal buttons */
+.btn-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent-primary);
+    color: white;
+    font-size: 0.6rem;
+    padding: 2px 5px;
+    border-radius: 10px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.btn-badge.warning {
+    background: var(--accent-warning);
+    color: #000;
+}
+
 [data-theme="dark"] .ach-card-rarity.common {
   background: #374151;
   color: #9ca3af;
