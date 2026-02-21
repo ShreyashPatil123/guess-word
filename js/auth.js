@@ -29,18 +29,22 @@ window.Auth = {
       overlay: document.getElementById("auth-overlay"),
 
       // Mode toggle
-      loginTab: document.getElementById("auth-login-tab"),
-      signupTab: document.getElementById("auth-signup-tab"),
+      loginTab: document.getElementById("login-tab"),
+      signupTab: document.getElementById("signup-tab"),
 
-      // Login form
-      loginForm: document.getElementById("auth-login-form"),
-      loginIdentifier: document.getElementById("login-identifier"), // Changed from loginEmail
+      // Forms
+      loginForm: document.getElementById("login-form"),
+      signupForm: document.getElementById("signup-form"),
+      authTitle: document.getElementById("auth-title"),
+      authSubtext: document.getElementById("auth-subtext"),
+
+      // Login form inputs
+      loginIdentifier: document.getElementById("login-identifier"),
       loginPassword: document.getElementById("login-password"),
       loginBtn: document.getElementById("login-btn"),
 
-      // Signup form - step 1
-      signupForm: document.getElementById("auth-signup-form"),
-      signupUsername: document.getElementById("signup-username"), // Added
+      // Signup form inputs
+      signupUsername: document.getElementById("signup-username"),
       signupEmail: document.getElementById("signup-email"),
       signupPassword: document.getElementById("signup-password"),
       signupConfirm: document.getElementById("signup-confirm"),
@@ -63,7 +67,22 @@ window.Auth = {
       demoModal: document.getElementById("demo-modal"),
       demoStartBtn: document.getElementById("start-demo-btn"),
       demoNameInput: document.getElementById("demo-name"),
-      closeDemoBtn: document.querySelector("#demo-modal .close-modal"),
+
+      // Progressive Demo Modal Flow
+      demoDecisionModal: document.getElementById("demo-decision-modal-container"),
+      closeDecisionBtn: document.getElementById("close-demo-modal"),
+      decisionLoginBtn: document.getElementById("unlock-leaderboard-btn"),
+      decisionGuestBtn: document.getElementById("continue-guest-btn"),
+      guestLoginLink: document.getElementById("guest-login-link"),
+      
+      demoDecisionView: document.getElementById("demo-decision-view"),
+      demoGuestView: document.getElementById("demo-guest-view"),
+
+      // New Modal flow
+      heroStartBtn: document.getElementById("hero-start-btn"),
+      authModalPopup: document.getElementById("auth-modal-popup"),
+      authCloseBtn: document.getElementById("auth-close-btn"),
+      authModalBackdrop: document.querySelector(".auth-modal-backdrop"),
     };
 
     this.setupListeners();
@@ -87,32 +106,65 @@ window.Auth = {
    * Setup event listeners
    */
   setupListeners() {
-    // Mode toggle tabs
-    this.elements.loginTab?.addEventListener("click", () =>
-      this.setMode("login"),
-    );
-    this.elements.signupTab?.addEventListener("click", () =>
-      this.setMode("signup"),
-    );
-
-    // Login form
-    this.elements.loginBtn?.addEventListener("click", () => this.handleLogin());
-    this.elements.loginIdentifier?.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.elements.loginPassword?.focus();
-    });
-    this.elements.loginPassword?.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.handleLogin();
+    // Hero to Modal transition
+    this.elements.heroStartBtn?.addEventListener("click", () => {
+      this.showAuthModalPopup();
     });
 
-    // Signup form - password match validation
+    // Close Modal logic
+    this.elements.authCloseBtn?.addEventListener("click", () => {
+      this.closeAuthModalPopup();
+    });
+
+    this.elements.authModalBackdrop?.addEventListener("click", () => {
+      this.closeAuthModalPopup();
+    });
+
+    // Tab switching (Explicit logic from prompt)
+    const loginTabElement = document.getElementById("login-tab");
+    const signupTabElement = document.getElementById("signup-tab");
+    const loginFormElement = document.getElementById("login-form");
+    const signupFormElement = document.getElementById("signup-form");
+    const authTitleElement = document.getElementById("auth-title");
+    const authSubtextElement = document.getElementById("auth-subtext");
+
+    loginTabElement?.addEventListener("click", () => {
+      loginTabElement.classList.add("active");
+      signupTabElement.classList.remove("active");
+
+      loginFormElement.classList.remove("hidden");
+      signupFormElement.classList.add("hidden");
+
+      if (authTitleElement) authTitleElement.textContent = "Continue Your Streak";
+      if (authSubtextElement) authSubtextElement.textContent = "Log in to track scores and climb the leaderboard.";
+    });
+
+    signupTabElement?.addEventListener("click", () => {
+      signupTabElement.classList.add("active");
+      loginTabElement.classList.remove("active");
+
+      signupFormElement.classList.remove("hidden");
+      loginFormElement.classList.add("hidden");
+
+      if (authTitleElement) authTitleElement.textContent = "Create Your Player Profile";
+      if (authSubtextElement) authSubtextElement.textContent = "Compete, rank up, and prove your speed.";
+    });
+
+    // Form submissions (Routing to existing logic)
+    loginFormElement?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleLogin();
+    });
+
+    signupFormElement?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleSignupStart();
+    });
+
+    // Setup password validation and OTP exactly natively
     const validatePasswords = () => this.validatePasswordMatch();
     this.elements.signupPassword?.addEventListener("input", validatePasswords);
     this.elements.signupConfirm?.addEventListener("input", validatePasswords);
-
-    // Signup form - submit
-    this.elements.signupBtn?.addEventListener("click", () =>
-      this.handleSignupStart(),
-    );
 
     // OTP form
     this.elements.verifyBtn?.addEventListener("click", () =>
@@ -128,44 +180,118 @@ window.Auth = {
     // Logout
     this.elements.logoutBtn?.addEventListener("click", () => this.logout());
 
-    // Demo Flow
-    console.log("Setup Listeners: Checking Demo Button", this.elements.demoBtn);
+    // ==========================================
+    // Progressive Demo / Guest Decision Flow
+    // ==========================================
+    const demoModal = document.getElementById("demo-decision-modal-container");
+    const decisionView = document.getElementById("demo-decision-view");
+    const guestView = document.getElementById("demo-guest-view");
 
-    if (this.elements.demoBtn) {
-      this.elements.demoBtn.addEventListener("click", (e) => {
-        console.log("Demo Button Clicked");
-        e.preventDefault(); // Just in case
-
-        // Show dedicated demo backdrop
-        const backdrop = document.getElementById("demo-modal-container");
-        if (backdrop) {
-          backdrop.classList.remove("hidden");
-          // z-index is set inline to 2000, which is > auth-overlay (1500)
-        } else {
-          console.error("Demo Modal Backdrop not found!");
-        }
-
-        // Show Modal itself (it's inside the backdrop now)
-        if (this.elements.demoModal) {
-          this.elements.demoModal.classList.remove("hidden");
-          this.elements.demoNameInput?.focus();
-        }
-      });
+    function showDecisionView() {
+      if (decisionView) decisionView.classList.remove("hidden");
+      if (guestView) guestView.classList.add("hidden");
+      if (decisionView) {
+        decisionView.style.display = "block";
+        decisionView.style.opacity = "1";
+      }
+      if (guestView) {
+        guestView.style.display = "none";
+        guestView.style.opacity = "0";
+      }
     }
 
-    this.elements.closeDemoBtn?.addEventListener("click", () => {
-      const backdrop = document.getElementById("demo-modal-container");
-      if (backdrop) backdrop.classList.add("hidden");
-      // Also hide the modal just in case logic separated later
-      this.elements.demoModal?.classList.add("hidden");
+    function showGuestView() {
+      if (decisionView) decisionView.classList.add("hidden");
+      if (guestView) guestView.classList.remove("hidden");
+      if (decisionView) {
+        decisionView.style.display = "none";
+        decisionView.style.opacity = "0";
+      }
+      if (guestView) {
+        guestView.style.display = "block";
+        guestView.style.opacity = "1";
+      }
+    }
+
+    const openDemoModal = () => {
+      if (demoModal) {
+        demoModal.classList.remove("hidden");
+        document.body.classList.add("modal-open");
+        showDecisionView();
+      }
+    };
+
+    window.closeDemoModal = () => {
+      if (demoModal) {
+        demoModal.classList.add("hidden");
+        document.body.classList.remove("modal-open");
+      }
+    };
+
+    const heroDemoBtn = document.getElementById("auth-demo-btn");
+    heroDemoBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      openDemoModal();
     });
 
-    this.elements.demoStartBtn?.addEventListener("click", () =>
+    const continueGuestBtn = document.getElementById("continue-guest-btn");
+    continueGuestBtn?.addEventListener("click", showGuestView);
+
+    const unlockLeaderboardBtn = document.getElementById("unlock-leaderboard-btn");
+    unlockLeaderboardBtn?.addEventListener("click", () => {
+      window.closeDemoModal();
+      this.showAuthModalPopup();
+    });
+
+    const guestLoginLink = document.getElementById("guest-login-link");
+    guestLoginLink?.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.closeDemoModal();
+      this.showAuthModalPopup();
+    });
+
+    const closeDemoBtnObj = document.getElementById("close-demo-modal");
+    closeDemoBtnObj?.addEventListener("click", window.closeDemoModal);
+
+    demoModal?.addEventListener("click", (e) => {
+      if (e.target === demoModal) {
+        window.closeDemoModal();
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (demoModal && !demoModal.classList.contains("hidden")) {
+          window.closeDemoModal();
+        }
+        if (this.elements.authModalPopup && !this.elements.authModalPopup.classList.contains("hidden")) {
+           if (!this.isSubmitting) this.hideAuthModalPopup();
+        }
+      }
+    });
+
+    const startDemoSubmissionBtn = document.getElementById("start-demo-btn");
+    startDemoSubmissionBtn?.addEventListener("click", () =>
       this.handleDemoLogin(),
     );
 
-    this.elements.demoNameInput?.addEventListener("keypress", (e) => {
+    const demoNameInputObj = document.getElementById("demo-name");
+    demoNameInputObj?.addEventListener("keypress", (e) => {
       if (e.key === "Enter") this.handleDemoLogin();
+    });
+
+    // Password visibility toggle
+    document.querySelectorAll(".toggle-password").forEach(button => {
+      button.addEventListener("click", function () {
+        const input = document.getElementById(this.dataset.target);
+        if (input.type === "password") {
+          input.type = "text";
+          this.textContent = "🙈";
+        } else {
+          input.type = "password";
+          this.textContent = "👁";
+        }
+      });
     });
   },
 
@@ -176,13 +302,17 @@ window.Auth = {
     this.mode = mode;
     this.clearError();
 
-    // Update tabs
+    // Update tabs via DOM queries to match new structure
     if (mode === "login") {
       this.elements.loginTab?.classList.add("active");
       this.elements.signupTab?.classList.remove("active");
       this.elements.loginForm?.classList.remove("hidden");
       this.elements.signupForm?.classList.add("hidden");
       this.elements.otpForm?.classList.add("hidden");
+      
+      if (this.elements.authTitle) this.elements.authTitle.textContent = "Continue Your Streak";
+      if (this.elements.authSubtext) this.elements.authSubtext.textContent = "Log in to track scores and climb the leaderboard.";
+
       this.elements.loginIdentifier?.focus();
     } else {
       this.elements.loginTab?.classList.remove("active");
@@ -190,6 +320,10 @@ window.Auth = {
       this.elements.loginForm?.classList.add("hidden");
       this.elements.signupForm?.classList.remove("hidden");
       this.elements.otpForm?.classList.add("hidden");
+
+      if (this.elements.authTitle) this.elements.authTitle.textContent = "Create Your Player Profile";
+      if (this.elements.authSubtext) this.elements.authSubtext.textContent = "Compete, rank up, and prove your speed.";
+
       this.elements.signupUsername?.focus();
     }
   },
@@ -246,8 +380,27 @@ window.Auth = {
   hideAuthOverlay() {
     this.elements.overlay?.classList.add("hidden");
     this.updateUserDisplay();
+    // Also ensure body lock is removed and modal popup hides
+    this.closeAuthModalPopup();
     document.getElementById("game-wrapper")?.classList.remove("hidden");
     document.getElementById("game-container")?.classList.remove("hidden");
+  },
+
+  /**
+   * Modal Popup Flow
+   */
+  showAuthModalPopup() {
+    this.elements.authModalPopup?.classList.remove("hidden");
+    document.body.classList.add("modal-open");
+    this.setMode("signup"); // Default to signup on "Start Challenge" click
+  },
+
+  closeAuthModalPopup() {
+    // Guard against closing during login/signup attempt
+    if (this.isSubmitting) return;
+
+    this.elements.authModalPopup?.classList.add("hidden");
+    document.body.classList.remove("modal-open");
   },
 
   /**
@@ -272,6 +425,7 @@ window.Auth = {
    */
   setLoading(button, isLoading) {
     if (!button) return;
+    this.isSubmitting = isLoading; // Set guard flag
     if (isLoading) {
       button.disabled = true;
       button.dataset.originalText = button.textContent;
@@ -297,6 +451,11 @@ window.Auth = {
     this.setLoading(this.elements.demoStartBtn, true);
 
     try {
+      if (this.elements.demoStartBtn) {
+        this.elements.demoStartBtn.disabled = true;
+        this.elements.demoStartBtn.textContent = "Starting...";
+      }
+
       const response = await fetch("/auth/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -314,20 +473,68 @@ window.Auth = {
       this.sessionToken = data.token;
       localStorage.setItem("authToken", data.token);
 
-      // Hide Modal & Backdrop
-      this.elements.demoModal?.classList.add("hidden");
-      const backdrop = document.getElementById("demo-modal-container");
-      if (backdrop) {
-        backdrop.classList.add("hidden");
+      // Clean exit before routing
+      if (window.closeDemoModal) {
+         window.closeDemoModal();
       }
 
       this.ensureProfile(data.user);
       this.hideAuthOverlay();
+      this.showGuestToast(); // Show toast after navigating to game
+      
     } catch (error) {
       alert(error.message);
+      if (this.elements.demoStartBtn) {
+        this.elements.demoStartBtn.disabled = false;
+        this.elements.demoStartBtn.textContent = "Start Playing as Guest";
+      }
     } finally {
       this.setLoading(this.elements.demoStartBtn, false);
+      if (this.elements.demoStartBtn && !this.currentUser) {
+         this.elements.demoStartBtn.disabled = false;
+         this.elements.demoStartBtn.textContent = "Start Playing as Guest";
+      }
     }
+  },
+
+  showGuestToast() {
+    const toast = document.createElement("div");
+    toast.className = "guest-toast";
+    toast.innerHTML = "<strong>Playing as Guest.</strong><br>Login to compete on the leaderboard.";
+    
+    // Minimal dynamic styling for toast (can be moved to CSS, but guarantees presence for simple UI requirements)
+    Object.assign(toast.style, {
+      position: 'fixed',
+      top: '20px',
+      left: '50%',
+      transform: 'translate(-50%, -20px)',
+      background: 'rgba(15, 17, 21, 0.9)',
+      border: '1px solid rgba(74, 222, 128, 0.5)',
+      color: '#fff',
+      padding: '16px 24px',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      zIndex: '9999',
+      textAlign: 'center',
+      opacity: '0',
+      transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+      pointerEvents: 'none',
+    });
+
+    document.body.appendChild(toast);
+
+    // Slide down and fade in
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translate(-50%, 0)';
+    });
+
+    // Auto dismiss after 4 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%, -20px)';
+      setTimeout(() => toast.remove(), 400); // 400ms transition time
+    }, 4000);
   },
 
   // ==================================

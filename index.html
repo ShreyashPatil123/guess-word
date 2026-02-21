@@ -54,150 +54,185 @@
       </button>
     </div>
 
-    <!-- Demo Setup Modal (Moved to Global Scope) -->
-    <div id="demo-modal-container" class="modal-backdrop hidden" style="z-index: 2000;">
-        <div id="demo-modal" class="modal">
-            <div class="modal-content small-modal">
-                <div class="modal-header">
-                    <h2>Start Demo</h2>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Enter a display name to start playing immediately.</p>
-                    <div class="auth-input-group">
-                        <label>Display Name</label>
-                        <input type="text" id="demo-name" placeholder="e.g. GuestPlayer" maxlength="15">
-                    </div>
-                    <button id="start-demo-btn" class="btn primary glow">Start Playing</button>
-                </div>
+    <!-- Demo Progressive Decision Modal -->
+    <div id="demo-decision-modal-container" class="modal-backdrop hidden" style="z-index: 5000;">
+      <div class="glass-card" style="max-width: 400px; padding: 30px; position: relative;">
+
+        <!-- CLOSE BUTTON -->
+        <button class="modal-close-btn" id="close-demo-modal" aria-label="Close">&times;</button>
+
+        <div class="modal-content small-modal" style="text-align: center; padding-top: 10px;">
+          <!-- STATE 1: DECISION VIEW -->
+          <div id="demo-decision-view" class="modal-view active-view" style="transition: opacity 120ms ease; opacity: 1;">
+            <h2 style="margin-bottom: 8px;">Play Without Ranking?</h2>
+            
+            <p class="modal-subtext" style="margin-bottom: 24px; color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5;">
+              Guest scores won't appear on the leaderboard.<br>
+              Log in to compete, track streaks, and climb rankings.
+            </p>
+
+            <button id="unlock-leaderboard-btn" class="btn btn-primary glow" style="width: 100%; margin-bottom: 12px;">
+              Unlock Leaderboard Mode
+            </button>
+
+            <button id="continue-guest-btn" class="btn btn-secondary" style="width: 100%;">
+              Continue as Guest
+            </button>
+          </div>
+
+          <!-- STATE 2: GUEST VIEW -->
+          <div id="demo-guest-view" class="modal-view hidden-view" style="transition: opacity 120ms ease; opacity: 0; display: none;">
+            <h2 style="margin-bottom: 8px;">Enter Your Display Name</h2>
+
+            <p class="modal-subtext" style="margin-bottom: 24px; color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5;">
+              This name will appear during your guest session.
+            </p>
+
+            <div class="auth-input-group" style="margin-bottom: 20px;">
+              <input
+                type="text"
+                id="demo-name"
+                placeholder="e.g. GuestPlayer"
+                maxlength="15"
+                style="width: 100%;"
+              />
             </div>
+
+            <button id="start-demo-btn" class="btn primary glow" style="width: 100%; margin-bottom: 16px;">
+              Start Playing as Guest
+            </button>
+
+            <p class="modal-switch-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">
+              Want to compete on the leaderboard?
+              <br>
+              <span id="guest-login-link" style="color: #4ade80; text-decoration: underline; margin-top: 4px; display: inline-block; cursor: pointer;">Log in instead</span>
+            </p>
+          </div>
         </div>
+
+      </div>
     </div>
 
-    <!-- Auth Overlay -->
+    <!-- Auth Overlay (Hero Section + Modal) -->
     <div id="auth-overlay" class="auth-overlay hidden">
-      <!-- Left Side Ad -->
-      <div class="side-ad side-ad-left">
-        <div class="ad-placeholder">
-          <span>Advertisement</span>
-        </div>
+      <!-- Background Elements -->
+      <div class="auth-bg-wrapper">
+        <div class="bg-flare primary-flare"></div>
+        <div class="bg-flare secondary-flare"></div>
+        <div class="bg-particles"></div>
+        <!-- Floating Letters -->
+        <span class="floating-letter letter-1">A</span>
+        <span class="floating-letter letter-2">R</span>
+        <span class="floating-letter letter-3">E</span>
+        <span class="floating-letter letter-4">S</span>
+        <span class="floating-letter letter-5">B</span>
+        <span class="floating-letter letter-6">T</span>
       </div>
-      
-      <div class="auth-modal">
-        <div class="auth-header">
-          <h2>Welcome to <span class="highlight">GuessAI</span></h2>
-          <p>Sign in to play the game</p>
-        </div>
 
-        <!-- Mode Toggle Tabs -->
-        <div class="auth-tabs">
-          <button id="auth-login-tab" class="auth-tab active">Login</button>
-          <button id="auth-signup-tab" class="auth-tab">Sign Up</button>
-        </div>
-        
-        <!-- Demo Button -->
-        <div class="auth-demo-container">
-            <button id="auth-demo-btn" class="btn secondary small">Continue as Demo</button>
-        </div>
+      <!-- Center Hero Section Removed for Modal Only -->
 
-        <!-- LOGIN FORM (Email + Password only) -->
-        <div id="auth-login-form" class="auth-form">
-          <div class="auth-input-group">
-            <label for="login-identifier">Email or Username</label>
+      <!-- Auth Modal Popup Wrapper -->
+      <div id="auth-modal-popup" class="auth-modal-popup hidden">
+        <div class="auth-modal-backdrop"></div>
+        <div class="auth-modal auth-card futuristic-card">
+          <button id="auth-close-btn" class="modal-close-btn">&times;</button>
+          
+          <div class="auth-header">
+            <h2 id="auth-title">Continue Your Streak</h2>
+            <p id="auth-subtext">Log in to track scores and climb the leaderboard.</p>
+          </div>
+
+          <div class="auth-tabs">
+            <button id="login-tab" class="auth-tab active">Log In</button>
+            <button id="signup-tab" class="auth-tab">Sign Up</button>
+          </div>
+
+          <!-- LOGIN FORM -->
+          <form id="login-form">
             <input
               type="text"
               id="login-identifier"
-              placeholder="Enter email or username"
+              placeholder="Username or Email"
+              class="premium-input-field"
             />
-          </div>
-          <div class="auth-input-group">
-            <label for="login-password">Password</label>
-            <input
-              type="password"
-              id="login-password"
-              placeholder="Enter your password"
-              autocomplete="current-password"
-            />
-          </div>
-          <button id="login-btn" class="btn primary auth-btn">Login</button>
-        </div>
+            <div class="password-wrapper">
+              <input
+                type="password"
+                id="login-password"
+                placeholder="Password"
+                autocomplete="current-password"
+                class="premium-input-field"
+              />
+              <button type="button" class="toggle-password" data-target="login-password">👁</button>
+            </div>
+            <button type="submit" id="login-btn">Login</button>
+          </form>
 
-        <!-- SIGNUP FORM - Step 1 (Email + Password + Confirm) -->
-        <div id="auth-signup-form" class="auth-form hidden">
-          <div class="auth-input-group">
-            <label for="signup-username">Username</label>
+          <!-- SIGNUP FORM -->
+          <form id="signup-form" class="hidden">
             <input
               type="text"
               id="signup-username"
               placeholder="Choose a unique username"
               maxlength="20"
+              class="premium-input-field"
             />
-          </div>
-          <div class="auth-input-group">
-            <label for="signup-email">Email</label>
             <input
               type="email"
               id="signup-email"
               placeholder="you@example.com"
               autocomplete="email"
+              class="premium-input-field"
             />
-          </div>
-          <div class="auth-input-group">
-            <label for="signup-password">Password</label>
-            <input
-              type="password"
-              id="signup-password"
-              placeholder="At least 6 characters"
-              autocomplete="new-password"
-              minlength="6"
-            />
-          </div>
-          <div class="auth-input-group">
-            <label for="signup-confirm">Confirm Password</label>
-            <input
-              type="password"
-              id="signup-confirm"
-              placeholder="Re-enter password"
-              autocomplete="new-password"
-            />
+            <div class="password-wrapper">
+              <input
+                type="password"
+                id="signup-password"
+                placeholder="At least 6 characters"
+                autocomplete="new-password"
+                minlength="6"
+                class="premium-input-field"
+              />
+              <button type="button" class="toggle-password" data-target="signup-password">👁</button>
+            </div>
+            <div class="password-wrapper">
+              <input
+                type="password"
+                id="signup-confirm"
+                placeholder="Re-enter password"
+                autocomplete="new-password"
+                class="premium-input-field"
+              />
+              <button type="button" class="toggle-password" data-target="signup-confirm">👁</button>
+            </div>
             <p id="password-mismatch" class="input-error hidden">
               Passwords do not match
             </p>
-          </div>
-          <button id="signup-btn" class="btn primary auth-btn" disabled>
-            Create Account
-          </button>
-        </div>
+            <button type="submit" id="signup-btn" disabled>Start Challenge</button>
+          </form>
 
-        <!-- SIGNUP FORM - Step 2 (OTP Verification) -->
-        <div id="auth-otp-form" class="auth-form hidden">
-          <p class="auth-info">We sent a verification code to your email</p>
-          <div class="auth-input-group">
-            <label for="signup-otp">Verification Code</label>
+          <!-- SIGNUP FORM - Step 2 (OTP Verification) - Preserving this as it's part of the existing backend flow -->
+          <div id="auth-otp-form" class="hidden" style="margin-top: 20px; text-align: center;">
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 15px;">We sent a verification code to your email</p>
             <input
               type="text"
               id="signup-otp"
               placeholder="Enter 6-digit code"
               maxlength="6"
               autocomplete="one-time-code"
+              class="premium-input-field"
+              style="text-align: center; letter-spacing: 2px;"
             />
+            <button type="button" id="verify-btn" style="width: 100%; padding: 14px; border-radius: 14px; background: linear-gradient(90deg,#1f7a45,#3be27f); border: none; color: white; font-weight: bold; margin-bottom: 10px;">
+              Verify & Create Account
+            </button>
+            <button type="button" id="otp-back-btn" style="background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;">
+              &larr; Use different email
+            </button>
           </div>
-          <button id="verify-btn" class="btn primary auth-btn">
-            Verify & Create Account
-          </button>
-          <button id="otp-back-btn" class="btn text">
-            ← Use different email
-          </button>
-        </div>
 
-        <!-- Error Message -->
-        <p id="auth-error" class="auth-error hidden"></p>
-      </div>
-      
-      <!-- Right Side Ad -->
-      <div class="side-ad side-ad-right">
-        <div class="ad-placeholder">
-          <span>Advertisement</span>
+          <!-- Error Message -->
+          <p id="auth-error" class="hidden" style="color: #ff4757; text-align: center; margin-top: 15px;"></p>
         </div>
       </div>
     </div>
@@ -205,11 +240,7 @@
     <!-- Main Game Container Wrapper with Side Ads -->
     <div id="game-wrapper" class="game-wrapper hidden">
       <!-- Left Side Ad -->
-      <div class="side-ad side-ad-left">
-        <div class="ad-placeholder">
-          <span>Advertisement</span>
-        </div>
-      </div>
+      <!-- Left Side Ad Removed -->
       
       <div id="game-container" class="container">
       <!-- Header -->
@@ -350,65 +381,37 @@
 
       <!-- Dashboard / Home Screen -->
       <section id="dashboard" class="screen active">
-        <!-- Decorative Background Grid (Non-interactive) -->
-        <div class="home-bg-grid" aria-hidden="true">
-          <div class="bg-grid">
-            <div class="bg-row">
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-            </div>
-            <div class="bg-row">
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-            </div>
-            <div class="bg-row">
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-            </div>
-            <div class="bg-row">
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-            </div>
-            <div class="bg-row">
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-              <div class="bg-tile"></div>
-            </div>
-          </div>
-        </div>
+        <!-- Arena Hero Overriding Dashboard -->
+        <section id="hero-section" class="arena-hero">
+          <h1 class="hero-title">
+            Your Brain vs <span class="accent">The Clock</span>
+          </h1>
 
-        <div class="dashboard-content">
-          <h2>Ready to Guess?</h2>
-          <p class="subtitle">
-            Timed word challenges · Random words from 5,000+ vocabulary bank
+          <p class="hero-subtitle">
+            Train your brain. Beat the clock. Climb the leaderboard.
           </p>
 
-          <div class="action-buttons">
-            <button id="continue-game-btn" class="btn primary hidden">
-              Continue Game
-            </button>
-            <button id="new-game-btn" class="btn primary">New Game</button>
-            <button id="tutorial-btn" class="btn text">How to Play</button>
+          <div class="feature-grid">
+            <div class="feature-pill">⏱ 60-Second Rounds</div>
+            <div class="feature-pill">📚 5,000+ Word Bank</div>
+            <div class="feature-pill">🏆 Competitive Leaderboard</div>
+            <div class="feature-pill">♻ Infinite Replay</div>
           </div>
 
-          <div id="stats-preview" class="stats-preview hidden">
-            <!-- Dynamic Stats Here -->
-          </div>
-        </div>
+          <p class="hero-hook">
+            Can you survive <strong>3 rounds</strong> in a row?
+          </p>
+
+          <button id="new-game-btn" class="primary-cta">
+            Start Challenge
+          </button>
+          <!-- Keep continue hidden to not break JS logic -->
+          <button id="continue-game-btn" class="btn primary hidden">Continue Game</button>
+
+          <a id="tutorial-btn" class="secondary-link">
+            How It Works
+          </a>
+        </section>
       </section>
 
       <!-- Leaderboard Screen (Dashboard Layout) -->
@@ -1091,11 +1094,7 @@
     </div>
       
       <!-- Right Side Ad -->
-      <div class="side-ad side-ad-right">
-        <div class="ad-placeholder">
-          <span>Advertisement</span>
-        </div>
-      </div>
+      <!-- Right Side Ad Removed -->
     </div>
 
     <!-- Scripts -->
