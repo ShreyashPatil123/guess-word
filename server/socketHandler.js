@@ -131,7 +131,6 @@ function setupSocketEvents(io) {
         const evaluation = evaluateGuess(userGuess, targetWord);
         const isCorrect = (userGuess === targetWord);
 
-        console.log(`[Multiplayer Guess] Player: ${player.player_name}, Guess: "${userGuess}", Target: "${targetWord}", isCorrect: ${isCorrect}`);
 
         if (isCorrect) {
           // ... (keep existing correct guess logic)

@@ -50,7 +50,7 @@ async function addPlayerToParty(partyCode, socketId, playerName) {
   const party = await getParty(partyCode);
   if (!party) return { error: 'Party not found' };
   if (party.status !== 'waiting') return { error: 'Game already started' };
-  if (party.party_players.length >= 8) return { error: 'Party is full (max 8 players)' };
+  if (party.party_players.length >= 8) return { error: 'max no of players are already in the PARTY' };
 
   const { error } = await supabase
     .from('party_players')

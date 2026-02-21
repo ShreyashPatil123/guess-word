@@ -66,7 +66,11 @@ const Multiplayer = {
           this.state.playerId = socket.id;
           this.refreshLobbyUI('room', res.party);
         } else {
-          alert("Error joining party: " + res.error);
+          if (window.UI && UI.showToast) {
+            UI.showToast(res.error);
+          } else {
+            alert("Error joining party: " + res.error);
+          }
         }
       });
     });
