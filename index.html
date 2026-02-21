@@ -875,110 +875,70 @@
         </div>
 
         <!-- Tutorial Modal ("How to Play") -->
-        <div id="tutorial-modal" class="modal hidden">
-            <h2>How to Play</h2>
+        <div id="tutorial-modal" class="modal premium-dark-modal how-it-works-modal hidden">
+            <div class="modal-header">
+                <h2>How It <span class="accent">Works</span></h2>
+                <button class="close-modal-btn">&times;</button>
+            </div>
             
-            <div class="modal-content-scroll settings-content"> 
-                <!-- Reusing settings-content for similar padding/layout if appropriate, or adding custom class -->
-                
-                <div class="tutorial-section">
-                    <h3>What Is This Game?</h3>
-                    <p>GuessAI is a word guessing game where you try to find the hidden secret word before time runs out.</p>
-                </div>
-
-                <div class="tutorial-section">
-                    <h3>How to Start Playing</h3>
-                    <ul>
-                        <li>Click <strong>New Game</strong> on the dashboard.</li>
-                        <li>Choose a word length (3, 4, or 5 letters).</li>
-                        <li>The timer starts immediately!</li>
-                    </ul>
-                </div>
-
-                <div class="tutorial-section">
-                    <h3>Game Modes</h3>
-                    <ul>
-                        <li><strong>3 Letters</strong> (Easy): Short words, 3 minutes.</li>
-                        <li><strong>4 Letters</strong> (Medium): Standard challenge, 4 minutes.</li>
-                        <li><strong>5 Letters</strong> (Hard): Longer words, 5 minutes. Harder modes earn more points!</li>
-                    </ul>
-                </div>
-
-                <div class="tutorial-section">
-                    <h3>How to Enter a Guess</h3>
-                    <ul>
-                        <li>Type letters using your keyboard or the on-screen keys.</li>
-                        <li>Press <span class="key-badge">ENTER</span> to submit your guess.</li>
-                        <li>Use <span class="key-badge">BACKSPACE</span> to delete.</li>
-                    </ul>
-                </div>
-
-                <div class="tutorial-section">
-                    <h3>Color Meanings</h3>
-                    <p>Colors guide you to the answer:</p>
-                    <div class="color-demo-row">
-                        <div class="demo-tile correct">A</div>
-                        <span><strong>Green</strong>: Right letter, Right place.</span>
+            <div class="modal-content-scroll no-scrollbar"> 
+                <div class="how-it-works-grid">
+                    <div class="how-card" style="--index: 0">
+                        <div class="how-icon">🧩</div>
+                        <h3>The Core Game</h3>
+                        <p>Guess the secret word before time runs out. Each guess gives you color clues to help you find the answer.</p>
                     </div>
-                    <div class="color-demo-row">
-                        <div class="demo-tile present">B</div>
-                        <span><strong>Yellow</strong>: Right letter, Wrong place.</span>
+
+                    <div class="how-card" style="--index: 1">
+                        <div class="how-icon">👤</div>
+                        <h3>Single Player</h3>
+                        <p>Battle the AI! Choose a word length and use progressive hints to solve the puzzle. Faster solves mean higher scores.</p>
                     </div>
-                    <div class="color-demo-row">
-                        <div class="demo-tile absent">C</div>
-                        <span><strong>Gray</strong>: Letter is not in the word.</span>
+
+                    <div class="how-card" style="--index: 2">
+                        <div class="how-icon">👥</div>
+                        <h3>Multiplayer</h3>
+                        <p>Host or join a lobby! The <strong>Giver</strong> sets the word and hint, while the <strong>Guessers</strong> race to find it.</p>
                     </div>
-                </div>
 
-                <div class="tutorial-section">
-                    <h3>Time Rules</h3>
-                    <ul>
-                        <li>Timer starts instantly.</li>
-                        <li><strong>Yellow Timer</strong>: Time is running low.</li>
-                        <li><strong>Red Timer</strong>: Almost out of time!</li>
-                        <li>If time hits 0:00, it's <strong>Game Over</strong>.</li>
-                    </ul>
-                </div>
+                    <div class="how-card" style="--index: 3">
+                        <div class="how-icon">🎨</div>
+                        <h3>Color Clues</h3>
+                        <div class="color-steps">
+                            <div class="step">
+                                <span class="swatch correct"></span>
+                                <div><strong>Green</strong><br><small>Perfect Spot</small></div>
+                            </div>
+                            <div class="step">
+                                <span class="swatch present"></span>
+                                <div><strong>Yellow</strong><br><small>Wrong Spot</small></div>
+                            </div>
+                            <div class="step">
+                                <span class="swatch absent"></span>
+                                <div><strong>Gray</strong><br><small>Not in word</small></div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="tutorial-section">
-                    <h3>Winning & Losing</h3>
-                    <ul>
-                        <li><strong>Win</strong>: Guess the full word correctly.</li>
-                        <li><strong>Lose</strong>: Run out of attempts OR run out of time.</li>
-                        <li><em>Tip: Losing still counts as a game played!</em></li>
-                    </ul>
-                </div>
+                    <div class="how-card" style="--index: 4">
+                        <div class="how-icon">⚡</div>
+                        <h3>Scoring</h3>
+                        <p>Points are based on speed, accuracy, and difficulty. Use hints wisely—they carry a small point penalty!</p>
+                    </div>
 
-                <div class="tutorial-section">
-                    <h3>Scoring</h3>
-                    <ul>
-                        <li>Fewer tries = More points.</li>
-                        <li>Faster solve = Bonus points.</li>
-                        <li>Even if you lose, finding correct letters gives you a small score!</li>
-                    </ul>
-                </div>
-
-                 <div class="tutorial-section">
-                    <h3>Progress & Stats</h3>
-                    <ul>
-                        <li><strong>Games Played</strong>: Total matches started.</li>
-                        <li><strong>Avg Score</strong>: Shows how well you usually play.</li>
-                    </ul>
-                </div>
-
-                <div class="tutorial-section">
-                    <h3>Account Types</h3>
-                    <ul>
-                        <li><strong>Demo User</strong>: Progress saved ONLY on this device. Clearing cache wipes stats.</li>
-                        <li><strong>Registered</strong>: Save progress online and climb the global leaderboard permanently.</li>
-                    </ul>
+                    <div class="how-card" style="--index: 5">
+                        <div class="how-icon">🏆</div>
+                        <h3>Rank Up</h3>
+                        <p>Climb the global and category-specific leaderboards to prove you're the ultimate word master.</p>
+                    </div>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button class="btn primary close-modal-btn">Got it!</button>
+                <button class="primary-cta close-modal-btn" style="width: 100%; margin-top: 0;">Got It!</button>
             </div>
         </div>
+
 
         <div id="settings-modal" class="modal hidden">
           <h2>Settings</h2>
