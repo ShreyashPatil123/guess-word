@@ -263,6 +263,15 @@
         overflow: hidden; /* Prevent overflow from breaking layout */
     }
 
+    /* Allow scrolling and full-width for content-heavy screens */
+    #leaderboard-screen, 
+    #achievements-screen {
+        max-width: none !important; /* Expansion */
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100%;
+    }
+
     /* Dashboard - enhanced typography */
     .dashboard-content h2 {
         font-size: 3rem;

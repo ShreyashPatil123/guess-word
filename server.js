@@ -47,6 +47,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { evaluateGuess } = require("./server/utils/gameLogic");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -440,32 +441,7 @@ app.post("/api/check-guess", async (req, res) => {
     }
 });
 
-// Helper: Evaluate Guess (moved from frontend)
-function evaluateGuess(guess, target) {
-    const res = Array(guess.length).fill("absent");
-    const targetArr = target.split("");
-    const guessArr = guess.split("");
-
-    // 1. Find Greens
-    guessArr.forEach((char, i) => {
-      if (char === targetArr[i]) {
-        res[i] = "correct";
-        targetArr[i] = null;
-        guessArr[i] = null;
-      }
-    });
-
-    // 2. Find Yellows
-    guessArr.forEach((char, i) => {
-      if (char && targetArr.includes(char)) {
-        res[i] = "present";
-        const idx = targetArr.indexOf(char);
-        targetArr[idx] = null;
-      }
-    });
-
-    return res;
-}
+// Helper: Evaluate Guess (moved to server/utils/gameLogic.js)
 
 app.post("/api/game/reveal", (req, res) => {
     const authHeader = req.headers.authorization;
@@ -1013,7 +989,7 @@ app.post("/auth/signup/verify", async (req, res) => {
     console.log("New user created:", normalizedEmail);
 
     res.json({
-      user: { id: newUser.id, email: newUser.email },
+      user: { id: newUser.id, email: newUser.email, username: pending.username },
       token,
       message: "Account created successfully",
     });
@@ -1199,10 +1175,18 @@ app.post("/auth/login", async (req, res) => {
 
     console.log("User logged in:", targetEmail);
 
+    // Fetch username for the user
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
     res.json({
       user: {
         id: user.id,
         email: user.email,
+        username: profile?.username || "Player"
       },
       token,
       message: "Login successful",
@@ -1235,10 +1219,24 @@ app.get("/auth/me", async (req, res) => {
       return res.status(401).json({ error: "Invalid or expired session" });
     }
 
+    // Fetch username
+    console.log(`[AuthMe] Fetching profile for user: ${payload.userId}`);
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", payload.userId)
+      .single();
+    
+    if (profileError) {
+      console.warn(`[AuthMe] Profile fetch error for ${payload.userId}:`, profileError.message);
+    }
+    console.log(`[AuthMe] Username found: ${profile?.username}`);
+
     res.json({
       user: {
         id: payload.userId,
         email: payload.email,
+        username: profile?.username || "Player",
         account_type: payload.accountType || "real",
       },
     });

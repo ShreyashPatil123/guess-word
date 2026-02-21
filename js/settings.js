@@ -13,9 +13,6 @@ window.Settings = {
             username: null,
             email: null,
             saveUsernameBtn: null,
-            theme: null,
-            reducedMotion: null,
-            compactMode: null,
             masterVolume: null,
             sfx: null,
             bgMute: null
@@ -36,7 +33,6 @@ window.Settings = {
     init() {
         this.cacheElements();
         this.bindEvents();
-        this.loadLocalPreferences();
     },
 
     cacheElements() {
@@ -54,9 +50,6 @@ window.Settings = {
             email: $('settings-email'),
             saveUsernameBtn: $('save-username-btn'),
             charCount: $('username-char-count'),
-            theme: $('theme-toggle'),
-            reducedMotion: $('reduce-motion-toggle'),
-            compactMode: $('compact-mode-toggle'),
             masterVolume: $('master-volume'),
             sfx: $('sfx-toggle'),
             bgMute: $('bg-mute-toggle')
@@ -114,15 +107,6 @@ window.Settings = {
             });
         };
 
-        attachToggle(this.elements.inputs.theme, 'darkMode', (val) => UI && UI.applyTheme(val));
-        
-        attachToggle(this.elements.inputs.reducedMotion, 'reducedMotion', (val) => {
-             document.body.classList.toggle('reduced-motion', val);
-        });
-
-        attachToggle(this.elements.inputs.compactMode, 'compactMode', (val) => {
-             document.body.classList.toggle('compact-mode', val);
-        });
         
         attachToggle(this.elements.inputs.sfx, 'soundEnabled', (val) => {
              // Sync with AudioController if needed
@@ -140,7 +124,7 @@ window.Settings = {
             settings.masterVolume = val;
             Storage.saveSettings(settings);
             // Update audio engine
-            // if (window.AudioController) AudioController.setVolume(val);
+            if (window.AudioController) AudioController.setVolume(val);
         });
 
         // Mute on Blur Handler
@@ -178,19 +162,10 @@ window.Settings = {
         if (window.UI) UI.showModal('settings');
     },
 
-    loadLocalPreferences() {
-        const s = Storage.getSettings();
-        if (s.reducedMotion) document.body.classList.add('reduced-motion');
-        if (s.compactMode) document.body.classList.add('compact-mode');
-        // Theme is handled effectively by UI.init() normally
-    },
 
     refreshSettingsUI() {
         const s = Storage.getSettings();
         // Toggles
-        if (this.elements.inputs.theme) this.elements.inputs.theme.checked = !!s.darkMode;
-        if (this.elements.inputs.reducedMotion) this.elements.inputs.reducedMotion.checked = !!s.reducedMotion;
-        if (this.elements.inputs.compactMode) this.elements.inputs.compactMode.checked = !!s.compactMode;
         if (this.elements.inputs.sfx) this.elements.inputs.sfx.checked = s.soundEnabled !== false; // default true
         if (this.elements.inputs.bgMute) this.elements.inputs.bgMute.checked = !!s.muteOnBlur;
         

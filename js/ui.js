@@ -221,7 +221,7 @@ window.UI = {
         });
 
         // Generic Close Buttons (for Tutorial and others using class)
-        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+        document.querySelectorAll('.close-modal-btn, .modal-close-btn').forEach(btn => {
             btn.addEventListener('click', () => this.closeModals());
         });
 
@@ -551,6 +551,22 @@ window.UI = {
 
         AudioController.play('win'); // Simple chime
         setTimeout(() => popup.classList.add('hidden'), 5000);
+    },
+
+    showToast(message, duration = 3000) {
+        let toast = document.getElementById('ui-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'ui-toast';
+            document.body.appendChild(toast);
+        }
+        
+        toast.textContent = message;
+        toast.className = 'ui-toast show';
+        
+        setTimeout(() => {
+            toast.className = toast.className.replace('show', '');
+        }, duration);
     }
 };
 

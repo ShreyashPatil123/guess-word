@@ -10,40 +10,29 @@ window.Leaderboard = {
     state: {
         activeTab: 'global', // 'global' | '3' | '4' | '5'
         data: {}, // Cache: { [tab]: [] }
-        stats: null, // Cache for header stats
         isLoading: false
     },
 
     elements: {
         screen: null,
-        podium: null,
-        list: null, // tbody
+        list: null, // div
         tabs: null,
-        stats: {
-            totalPlayers: null,
-            userRank: null
-        },
         viewStates: {
             loading: null,
             empty: null,
             error: null
-        }
+        },
+        podium: null
     },
 
     init() {
         this.elements.screen = document.getElementById('leaderboard-screen');
         this.elements.list = document.getElementById('lb-list');
-        this.elements.podium = document.getElementById('lb-podium');
         this.elements.tabs = document.querySelectorAll('.lb-tab');
         
-        // Stats Elements
-        this.elements.stats.totalPlayers = document.getElementById('stat-total-players');
-        this.elements.stats.userRank = document.getElementById('stat-user-rank'); // "Your Global Rank"
-
         // View States
-        this.elements.viewStates.loading = document.getElementById('lb-loading');
-        this.elements.viewStates.empty = document.getElementById('lb-empty');
         this.elements.viewStates.error = document.getElementById('lb-error');
+        this.elements.podium = document.getElementById('lb-podium');
 
         // Tab Switching
         this.elements.tabs.forEach(tab => {
@@ -76,72 +65,11 @@ window.Leaderboard = {
             history.pushState({ screen: 'leaderboard' }, '', '#/leaderboard');
         }
 
-        this.fetchHeaderStats();
         this.switchTab(this.state.activeTab, false);
     },
 
     retry() {
-        this.state.stats = null;
         this.open(false);
-    },
-
-    async fetchHeaderStats() {
-        if (this.state.stats) {
-            this.renderHeaderStats(this.state.stats);
-            return;
-        }
-
-        try {
-            if (!window.supabase) throw new Error('Supabase client missing');
-
-            // 1. Total Players - Count profiles (exact)
-            // Fallback to user_overall_stats if profiles access fails/doesn't exist
-            let totalPlayers = '-';
-            
-            // Attempt 1: profiles
-            const { count: profileCount, error: profileError } = await window.supabase
-                .from('profiles')
-                .select('*', { count: 'exact', head: true });
-
-            if (!profileError && profileCount !== null) {
-                totalPlayers = profileCount;
-            } else {
-                // Attempt 2: user_overall_stats
-                const { count: statsCount } = await window.supabase
-                    .from('user_overall_stats')
-                    .select('*', { count: 'exact', head: true });
-                if (statsCount !== null) totalPlayers = statsCount;
-            }
-
-            // 2. User Rank
-            let userRank = 'Unranked';
-            const user = window.Auth && Auth.getUser();
-            
-            if (user) {
-                const { data: rankData } = await window.supabase
-                    .from('leaderboard_global')
-                    .select('rank')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-
-                if (rankData) userRank = `#${rankData.rank}`;
-            }
-
-            this.state.stats = { total: totalPlayers, rank: userRank };
-            this.renderHeaderStats(this.state.stats);
-
-        } catch (err) {
-            console.warn('Stats fetch error:', err);
-        }
-    },
-
-    renderHeaderStats(stats) {
-        if (this.elements.stats.totalPlayers) {
-            this.elements.stats.totalPlayers.textContent = stats.total;
-        }
-        if (this.elements.stats.userRank) {
-            this.elements.stats.userRank.textContent = stats.rank;
-        }
     },
 
     async switchTab(tab) {
@@ -176,7 +104,7 @@ window.Leaderboard = {
             if (tab === 'global') {
                 query = window.supabase
                     .from('leaderboard_global')
-                    .select('*') // Select all to see what we get
+                    .select('*') 
                     .order('rank', { ascending: true })
                     .limit(50);
             } else {
@@ -190,8 +118,6 @@ window.Leaderboard = {
 
             const { data, error } = await query;
             
-            // Response received
-
             if (error) {
                 console.error('[Leaderboard] Supabase Error:', error);
                 throw error;
@@ -211,113 +137,98 @@ window.Leaderboard = {
     renderData(data) {
         if (!data || data.length === 0) {
             this.setView('empty');
-            this.elements.podium.classList.add('hidden');
             this.elements.list.innerHTML = '';
+            if (this.elements.podium) this.elements.podium.innerHTML = '';
             return;
         }
 
         this.setView('content');
-
-        // Logic: All players go to Table. Top 3 go to Podium (Desktop only).
-        const showPodium = window.innerWidth >= 1024 && data.length >= 3;
-
-        if (showPodium) {
-            this.elements.podium.classList.remove('hidden');
-            this.renderPodium(data.slice(0, 3));
-        } else {
-            this.elements.podium.classList.add('hidden');
-        }
-
-        this.renderTable(data);
+        this.renderLayout(data);
     },
 
-    renderPodium(top3) {
-        // top3 is [Rank1, Rank2, Rank3]
-        // DOM Order needs to be: Rank2, Rank1, Rank3
-        const r1 = top3[0];
-        const r2 = top3[1];
-        const r3 = top3[2];
-        
-        const renderCard = (row, actualRank) => {
-            if (!row) return '';
+    renderLayout(data) {
+        // Split data: Top 3 for Podium, Rest for List
+        const top3 = data.slice(0, 3);
+        const rest = data.slice(3);
+
+        this.renderPodium(top3);
+        this.renderList(rest);
+    },
+
+    renderPodium(data) {
+        if (!this.elements.podium) return;
+        this.elements.podium.innerHTML = '';
+
+        data.forEach((row, idx) => {
+            const rank = row.rank || (idx + 1);
             const uname = row.username || 'Player';
-            const avatar = row.avatar_url || 'assets/default-avatar.png';
-            const val = Math.round(row.avg_score || 0);
-            
-            return `
-                <div class="podium-card rank-${actualRank}">
-                    <div class="podium-medal">${actualRank === 1 ? '🥇' : actualRank === 2 ? '🥈' : '🥉'}</div>
-                    <img src="${avatar}" class="podium-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}'">
-                    <div class="podium-u-info">
-                        <div class="podium-name">${uname}</div>
-                        <div class="podium-score">${val}</div>
-                        <div class="podium-sub">Avg Score</div>
-                    </div>
-                </div>
-            `;
-        };
+            const score = Math.round(row.best_score || 0);
+            const avg = Math.round(row.avg_score || 0);
+            const avatar = row.avatar_url || `https://ui-avatars.com/api/?name=${uname}&background=random`;
 
-        this.elements.podium.innerHTML = `
-            ${renderCard(r2, 2)}
-            ${renderCard(r1, 1)}
-            ${renderCard(r3, 3)}
-        `;
+            let medal = '🥇';
+            if (rank === 2) medal = '🥈';
+            if (rank === 3) medal = '🥉';
+
+            const card = document.createElement('div');
+            card.className = `podium-card rank-${rank}`;
+            
+            card.innerHTML = `
+                <div class="podium-avatar-wrapper">
+                    <img src="${avatar}" class="podium-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}'">
+                    <span class="podium-medal">${medal}</span>
+                </div>
+                <div class="podium-name">${uname}</div>
+                <div class="podium-score">
+                    <span class="podium-score-value">${score.toLocaleString()}</span>
+                    <span class="podium-score-label">Best Score</span>
+                </div>
+                <div class="podium-avg">${avg} avg</div>
+            `;
+            this.elements.podium.appendChild(card);
+        });
     },
 
-    renderTable(data) {
+    renderList(data) {
         this.elements.list.innerHTML = '';
         const user = window.Auth && Auth.getUser();
         const currentUserId = user ? user.id : null;
         const isGlobal = this.state.activeTab === 'global';
 
         data.forEach((row, idx) => {
-            const rank = row.rank || (idx + 1);
+            const rank = row.rank || (idx + 4); // Since it starts from 4th
             const isMe = row.user_id === currentUserId;
-            const avatar = row.avatar_url || 'assets/default-avatar.png';
             const uname = row.username || 'Player';
             
-            // Stats Mapping
+            // Score and Stats
+            const score = Math.round(row.best_score || 0);
             const avg = Math.round(row.avg_score || 0);
-            let best = '-';
-            let games = 0;
-            let wins = 0;
+            const games = isGlobal ? (row.total_games || 0) : (row.games_played || 0);
+            const avatar = row.avatar_url || `https://ui-avatars.com/api/?name=${uname}&background=random`;
 
-            if (isGlobal) {
-                // leaderboard_global fields now include: total_games, total_wins, best_score
-                games = row.total_games || 0;
-                wins = row.total_wins || 0;
-                best = row.best_score || '-';
-            } else {
-                // leaderboard_by_mode fields: games_played, games_won, best_score
-                games = row.games_played || 0;
-                wins = row.games_won || 0;
-                best = row.best_score || '-';
-            }
-
-            const tr = document.createElement('tr');
-            if (isMe) tr.className = 'current-user';
+            const entry = document.createElement('div');
+            entry.className = `leaderboard-entry ${isMe ? 'current-player' : ''}`;
+            entry.dataset.rank = rank;
             
-            tr.innerHTML = `
-                <td class="rank-badge-cell">#${rank}</td>
-                <td class="col-player-cell">
-                    <img src="${avatar}" class="col-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}'">
-                    <span class="player-name">${uname}</span>
-                    ${isMe ? '<span class="me-badge">YOU</span>' : ''}
-                </td>
-                <td class="td-stat tr-high-score">${avg}</td>
-                <td class="td-stat">${best}</td>
-                <td class="td-stat desktop-only">${games}</td>
-                <td class="td-stat desktop-only">${wins}</td>
+            entry.innerHTML = `
+                <div class="rank-badge">#${rank}</div>
+                <img src="${avatar}" class="lb-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${uname}'">
+                <div class="lb-player-info">
+                    <span class="lb-player-name">${uname}</span>
+                    <span class="lb-player-stats">${avg} avg · ${games} games</span>
+                </div>
+                <div class="lb-player-score">
+                    <span class="lb-score-value">${score.toLocaleString()}</span>
+                    <span class="lb-score-label">Best Score</span>
+                </div>
             `;
-            this.elements.list.appendChild(tr);
+            this.elements.list.appendChild(entry);
         });
     },
 
     setView(view) {
-        // view: 'loading' | 'empty' | 'error' | 'content'
         const { loading, empty, error } = this.elements.viewStates;
         
-        // Safety check
         if (loading) loading.classList.add('hidden');
         if (empty) empty.classList.add('hidden');
         if (error) error.classList.add('hidden');

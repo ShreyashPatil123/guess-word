@@ -718,7 +718,7 @@ window.Auth = {
 
   updateUserDisplay() {
     if (this.elements.userDisplay && this.currentUser) {
-      this.elements.userDisplay.textContent = this.currentUser.email;
+      this.elements.userDisplay.textContent = this.currentUser.username || this.currentUser.email;
       this.elements.userDisplay.classList.remove("hidden");
     }
     if (this.elements.logoutBtn && this.currentUser) {

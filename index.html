@@ -129,8 +129,26 @@
         <span class="floating-letter letter-6">T</span>
       </div>
 
-      <!-- Center Hero Section Removed for Modal Only -->
+      <!-- Centered Hero Section -->
+      <div id="auth-hero-container" class="auth-hero-container">
+        <div class="auth-hero">
+          <h1 class="hero-title">Your Brain vs <span class="accent">The Clock</span></h1>
+          <p class="hero-subtitle">Train your brain. Beat the clock. Climb the leaderboard.</p>
+          
+          <div class="hero-features">
+            <div class="feature-pill">⏱ 60-Second Rounds</div>
+            <div class="feature-pill">📚 5,000+ Word Bank</div>
+            <div class="feature-pill">🏆 Competitive Leaderboard</div>
+            <div class="feature-pill">♻ Infinite Replay</div>
+          </div>
 
+          <div class="hero-hook">
+            <p>Can you survive <strong>3 rounds</strong> in a row?</p>
+            <button id="hero-start-btn" class="primary-cta">Start Challenge</button>
+            <button id="auth-demo-btn" class="secondary-link">Continue as Guest</button>
+          </div>
+        </div>
+      </div>
       <!-- Auth Modal Popup Wrapper -->
       <div id="auth-modal-popup" class="auth-modal-popup hidden">
         <div class="auth-modal-backdrop"></div>
@@ -420,47 +438,13 @@
           <!-- 1. Header & Stats Row -->
           <div class="lb-header-section">
             <div class="lb-title-row">
-              <h2>Leaderboard <span class="highlight">Pro</span></h2>
-              <button id="lb-back-btn" class="btn text">← Back to Menu</button>
+              <h2>Leaderboard</h2>
+              <button id="lb-back-btn" class="btn text">Back to Menu →</button>
             </div>
 
-            <div id="lb-stats-grid" class="lb-stats-grid">
-              <!-- Stat Card 1 -->
-              <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-info">
-                  <span class="stat-label">Total Players</span>
-                  <span id="stat-total-players" class="stat-value">-</span>
-                </div>
-              </div>
-              <!-- Stat Card 2 -->
-              <div class="stat-card">
-                <div class="stat-icon">🏆</div>
-                <div class="stat-info">
-                  <span class="stat-label">Competition</span>
-                  <span class="stat-value">Season 1</span>
-                </div>
-              </div>
-              <!-- Stat Card 3 -->
-              <div class="stat-card">
-                <div class="stat-icon">👾</div>
-                <div class="stat-info">
-                  <span class="stat-label">Your Global Rank</span>
-                  <span id="stat-user-rank" class="stat-value">-</span>
-                </div>
-              </div>
-              <!-- Stat Card 4 -->
-              <div class="stat-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-info">
-                  <span class="stat-label">Status</span>
-                  <span class="stat-value">Active</span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <!-- 2. Tabs & Podium -->
+          <!-- 2. Tabs Controls -->
           <div class="lb-controls-section">
             <div class="lb-tabs">
               <button class="lb-tab active" data-tab="global">Global</button>
@@ -470,28 +454,17 @@
             </div>
           </div>
 
-          <div id="lb-podium" class="lb-podium hidden">
-            <!-- Injected by JS: Rank 2, Rank 1, Rank 3 -->
+          <!-- Podium Section (Top 3) -->
+          <div id="lb-podium" class="lb-podium">
+            <!-- Injected by JS -->
           </div>
 
-          <!-- 3. Main Data Table Panel -->
+          <!-- 3. Main Data Panel -->
           <div class="lb-panel">
-            <div class="lb-table-wrapper">
-              <table class="lb-table">
-                <thead>
-                  <tr>
-                    <th class="th-rank">Rank</th>
-                    <th class="th-player">Player</th>
-                    <th class="th-stat">Avg Score</th>
-                    <th class="th-stat">Best Score</th>
-                    <th class="th-stat desktop-only">Games</th>
-                    <th class="th-stat desktop-only">Wins</th>
-                  </tr>
-                </thead>
-                <tbody id="lb-list">
-                  <!-- Injected by JS -->
-                </tbody>
-              </table>
+            <div class="lb-list-wrapper">
+              <div id="lb-list" class="leaderboard-list">
+                <!-- Injected by JS -->
+              </div>
 
               <div id="lb-loading" class="lb-loading hidden">
                 <div class="spinner"></div>
@@ -519,8 +492,8 @@
           <!-- Header -->
           <div class="achievements-page-header">
             <div class="achievements-title-row">
-              <h2>🏆 Achievements</h2>
-              <button id="achievements-back-btn" class="btn text">← Back to Menu</button>
+              <h2>Achievements <span class="highlight">Pro</span></h2>
+              <button id="achievements-back-btn" class="btn text">Back to Menu →</button>
             </div>
             
             <!-- Stats Cards -->
@@ -665,39 +638,89 @@
         </header>
 
         <!-- Giver View -->
-        <div id="giver-view" class="hidden" style="text-align:center; padding: 20px;">
-           <h2>You are the Word Giver!</h2>
-           <p>Choose a secret word and provide a hint.</p>
-           <div class="auth-input-group" style="margin: 20px auto; max-width: 300px;">
-             <input type="text" id="giver-word-input" placeholder="Secret Word (3-8 letters)" maxlength="8">
-             <input type="text" id="giver-hint-input" placeholder="Hint..." style="margin-top: 10px;">
+        <div id="giver-view" class="multi-game-card giver-card hidden">
+           <div class="card-header">
+              <span class="icon">🎭</span>
+              <h2>You are the Word Giver!</h2>
            </div>
-           <button id="submit-word-hint-btn" class="btn primary">Submit Word & Hint</button>
-           <p id="giver-status-msg" class="pause-info hidden" style="margin-top: 15px;"></p>
+           <p class="subtitle">Choose a secret word and provide a clue for the duel.</p>
+           
+           <div id="giver-input-section">
+             <div class="multi-input-group">
+               <div class="input-wrapper">
+                 <label for="giver-word-input">SECRET WORD</label>
+                 <input type="text" id="giver-word-input" placeholder="3-8 letters" maxlength="8">
+               </div>
+               <div class="input-wrapper">
+                 <label for="giver-hint-input">CLUE / HINT</label>
+                 <input type="text" id="giver-hint-input" placeholder="Give them a hint...">
+               </div>
+             </div>
+             
+             <button id="submit-word-hint-btn" class="btn primary-cta">Submit Word & Hint</button>
+           </div>
+           
+           <div id="giver-word-display" class="word-reveal-box hidden" style="margin-top: 20px;">
+              <span class="label">YOUR CHOSEN WORD</span>
+              <div id="giver-current-word" class="reveal-text">---</div>
+           </div>
+           
+           <div id="giver-live-guesses-container" class="live-guesses-section hidden">
+              <div class="section-header">
+                 <span class="dot pulse"></span>
+                 <h3>Live Guesses</h3>
+              </div>
+              <ul id="giver-live-guesses-list" class="live-guesses-list">
+                 <!-- Guesses will appear here -->
+              </ul>
+           </div>
+
+           <p id="giver-status-msg" class="status-msg hidden"></p>
         </div>
 
         <!-- Guesser View -->
-        <div id="guesser-view" class="hidden" style="text-align:center; padding: 20px;">
-           <h3 id="multi-hint-text">Waiting for giver...</h3>
-           <div id="multi-word-slots" class="grid-container" style="margin: 20px auto; display: flex; justify-content: center; gap: 5px;">
-              <!-- slots -->
+        <div id="guesser-view" class="multi-game-card guesser-card hidden">
+           <div class="hint-display-box">
+              <span class="label">THE CLUE</span>
+              <h3 id="multi-hint-text">Waiting for giver...</h3>
            </div>
-           <div class="auth-input-group flex-row" style="display:flex; gap:10px; max-width: 300px; margin: 0 auto;">
-             <input type="text" id="multi-guess-input" placeholder="Your guess...">
-             <button id="submit-multi-guess-btn" class="btn primary">Guess</button>
+
+            <!-- Themed Grid Structure (Synchronized with Solo Play) -->
+            <div id="multi-word-slots" class="grid-container">
+               <!-- Tiles generated dynamically -->
+            </div>
+
+           <div class="guess-input-section">
+             <input type="text" id="multi-guess-input" placeholder="Type your guess...">
+             <button id="submit-multi-guess-btn" class="btn primary-cta">Guess</button>
            </div>
-           <p id="guesser-status-msg" style="margin-top: 15px; font-weight: bold;"></p>
+           
+           <p id="guesser-status-msg" class="status-msg"></p>
         </div>
 
         <!-- Round Results View -->
-        <div id="round-results-view" class="hidden" style="text-align:center; padding: 20px;">
-           <h2>Round Finished!</h2>
-           <p>The word was:</p>
-           <div id="round-word-reveal" class="highlight-word" style="margin: 10px auto;">WORD</div>
-           <h3>Leaderboard</h3>
-           <ul id="round-leaderboard-list" style="list-style: none; padding: 0; max-width: 300px; margin: 10px auto; text-align: left;">
-           </ul>
-           <p class="pause-info" style="margin-top: 20px;">Next round starting soon...</p>
+        <div id="round-results-view" class="multi-game-card results-card hidden">
+           <div class="results-header">
+              <span class="icon">🏁</span>
+              <h2>Round Finished!</h2>
+           </div>
+           
+           <div class="word-reveal-box">
+              <span class="label">THE WORD WAS</span>
+              <div id="round-word-reveal" class="reveal-text">WORD</div>
+           </div>
+
+           <div class="podium-leaderboard">
+              <h3>Round Standings</h3>
+              <ul id="round-leaderboard-list" class="podium-list">
+                 <!-- items generated by JS -->
+              </ul>
+           </div>
+           
+           <div class="next-round-loader">
+              <div class="loader-bar"></div>
+              <p>Next round starting soon...</p>
+           </div>
         </div>
       </section>
 
@@ -744,48 +767,109 @@
 
 
     <!-- Additional Modals -->
-        <!-- Mode Select Modal -->
-        <div id="mode-select-modal" class="modal hidden">
-            <h2>Select Game Mode</h2>
-            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
-                <button id="mode-single-btn" class="btn primary">Single Player</button>
-                <button id="mode-multi-btn" class="btn secondary">Online Multiplayer</button>
+        <!-- Mode Select Modal (Redesigned) -->
+        <div id="mode-select-modal" class="modal premium-dark-modal hidden">
+            <button class="modal-close-btn" id="close-mode-modal" aria-label="Close">&times;</button>
+            <div class="modal-header">
+                <h2>Choose Your <span class="accent">Challenge</span></h2>
+                <p class="modal-subtitle">Select a game mode to begin your journey</p>
+            </div>
+            
+            <div class="mode-options-grid">
+                <button id="mode-single-btn" class="mode-option-card single-player">
+                    <div class="mode-icon">👤</div>
+                    <div class="mode-info">
+                        <h3>Single Player</h3>
+                        <p>Challenge yourself against the clock</p>
+                    </div>
+                    <div class="mode-arrow">→</div>
+                </button>
+                
+                <button id="mode-multi-btn" class="mode-option-card multi-player">
+                    <div class="mode-icon">👥</div>
+                    <div class="mode-info">
+                        <h3>Multiple Players</h3>
+                        <p>Play with friends in real-time</p>
+                    </div>
+                    <div class="mode-arrow">→</div>
+                </button>
             </div>
         </div>
 
         <!-- Multiplayer Lobby Modal -->
-        <div id="lobby-modal" class="modal hidden">
+        <div id="lobby-modal" class="modal premium-dark-modal hidden">
+            <button class="modal-close-btn" id="close-lobby-modal" aria-label="Close">&times;</button>
+            
             <!-- Menu View -->
-            <div id="lobby-menu-view">
-                <h2>Online Multiplayer</h2>
-                <div class="auth-input-group">
-                    <label>Your Name</label>
-                    <input type="text" id="multi-player-name" placeholder="Enter your name" maxlength="15">
+            <div id="lobby-menu-view" class="lobby-view">
+                <div class="modal-header">
+                    <h2>Online <span class="accent">Multiplayer</span></h2>
+                    <p class="modal-subtitle">Join or create a party to play with friends</p>
                 </div>
-                <div class="modal-actions" style="margin-top: 15px;">
-                    <button id="create-party-btn" class="btn primary">Create Party</button>
+
+                <div class="lobby-section">
+                    <div class="user-profile-summary">
+                        <span class="label">Playing as</span>
+                        <div id="multiplayer-username-display" class="username-val">Loading...</div>
+                    </div>
                 </div>
-                <div style="margin: 15px 0; text-align: center;">OR</div>
-                <div class="auth-input-group flex-row" style="display:flex; gap:10px;">
-                    <input type="text" id="party-code-input" placeholder="Party Code (8 chars)" maxlength="8" style="text-transform: uppercase;">
-                    <button id="join-party-btn" class="btn secondary">Join</button>
+
+                <div class="lobby-divider">
+                    <span>CREATE OR JOIN</span>
+                </div>
+
+                <div class="lobby-actions-grid">
+                    <div class="lobby-card create-section">
+                        <button id="create-party-btn" class="primary-cta" style="width: 100%; margin-top: 0;">Create Party</button>
+                    </div>
+
+                    <div class="lobby-card join-section">
+                        <div class="join-input-wrapper">
+                            <input type="text" id="party-code-input" placeholder="PARTY CODE" maxlength="8" style="text-transform: uppercase;">
+                            <button id="join-party-btn" class="btn secondary">Join</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Room View -->
-            <div id="lobby-room-view" class="hidden">
-                <h2>Party Lobby</h2>
-                <div class="party-info" style="margin-bottom: 15px;">
-                    <div>Code: <strong id="display-party-code" class="highlight"></strong></div>
-                    <div>Players: <span id="player-count">0</span>/8</div>
+            <div id="lobby-room-view" class="lobby-view hidden">
+                <div class="modal-header">
+                    <h2>Party <span class="accent">Lobby</span></h2>
+                    <p class="modal-subtitle">Waiting for everyone to join</p>
                 </div>
-                <ul id="lobby-player-list" class="player-list" style="list-style: none; padding: 0; margin-bottom: 15px; max-height: 150px; overflow-y: auto;">
-                    <!-- Li elements dynamically added -->
-                </ul>
-                <p id="waiting-msg" class="pause-info">Waiting for players...</p>
+
+                <div class="party-status-card">
+                    <div class="party-code-box">
+                        <span class="label">PARTY CODE</span>
+                        <div class="code-display-wrapper">
+                            <strong id="display-party-code" class="highlight"></strong>
+                            <div class="party-actions">
+                                <button id="copy-code-btn" class="icon-btn" title="Copy Code">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button>
+                                <button id="share-code-btn" class="icon-btn secondary" title="Share Invite">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player-count-badge">
+                        <span id="player-count">0</span> / 8 Players
+                    </div>
+                </div>
+
+                <div class="player-list-container">
+                    <ul id="lobby-player-list" class="player-list">
+                        <!-- Li elements dynamically added -->
+                    </ul>
+                </div>
+
+                <p id="waiting-msg" class="waiting-status">Waiting for host to start...</p>
+
                 <div class="modal-actions">
-                    <button id="start-multi-game-btn" class="btn primary hidden">Start Game</button>
-                    <button id="leave-lobby-btn" class="btn danger">Leave</button>
+                    <button id="start-multi-game-btn" class="primary-cta hidden" style="width: 100%; margin-top: 0;">Start Game</button>
+                    <button id="leave-lobby-btn" class="secondary-link">Leave Party</button>
                 </div>
             </div>
         </div>
@@ -900,9 +984,8 @@
           <h2>Settings</h2>
           
           <div class="settings-tabs">
-            <button class="settings-tab active" data-tab="account">Account</button>
-            <button class="settings-tab" data-tab="appearance">Appearance</button>
-            <button class="settings-tab" data-tab="audio">Audio</button>
+            <button class="settings-tab active" data-tab="account">ACCOUNT</button>
+            <button class="settings-tab" data-tab="audio">AUDIO</button>
           </div>
 
           <div class="settings-content">
@@ -961,44 +1044,6 @@
               </div>
             </div>
 
-            <!-- Appearance Panel -->
-            <div id="panel-appearance" class="settings-panel">
-               <div class="settings-section">
-                  <span class="section-title">Visuals</span>
-                  <div class="setting-row">
-                      <div class="setting-label">
-                          <span class="setting-name">Dark Mode</span>
-                          <span class="setting-desc">Easier on the eyes</span>
-                      </div>
-                      <div class="setting-item toggle">
-                          <input type="checkbox" id="theme-toggle">
-                      </div>
-                  </div>
-               </div>
-
-               <div class="settings-section">
-                  <span class="section-title">Accessibility &amp; Preference</span>
-                  <div class="setting-row">
-                      <div class="setting-label">
-                          <span class="setting-name">Reduced Motion</span>
-                          <span class="setting-desc">Minimize animations</span>
-                      </div>
-                      <div class="setting-item toggle">
-                          <input type="checkbox" id="reduce-motion-toggle">
-                      </div>
-                  </div>
-                  <div class="setting-row">
-                      <div class="setting-label">
-                          <span class="setting-name">Compact Mode</span>
-                          <span class="setting-desc">Denser layout</span>
-                      </div>
-                      <div class="setting-item toggle">
-                          <input type="checkbox" id="compact-mode-toggle">
-                      </div>
-                  </div>
-               </div>
-            </div>
-
             <!-- Audio Panel -->
             <div id="panel-audio" class="settings-panel">
                <div class="settings-section">
@@ -1040,7 +1085,7 @@
           </div>
 
           <div class="settings-footer">
-            <div class="settings-attribution">Created by <a href="https://www.linkedin.com/in/shreyash-patil-33654a329/" target="_blank" rel="noopener" style="color: #0077b5; text-decoration: none;"></a>Shreyash Patil</a> & <a href="https://www.linkedin.com/in/parag-yewale-111b85362/" target="_blank" rel="noopener" style="color: #0077b5; text-decoration: none;">Parag Yewale</a></div>
+            <div class="settings-attribution">Created by <a href="https://www.linkedin.com/in/shreyash-patil-33654a329/" target="_blank" rel="noopener">Shreyash Patil</a> & <a href="https://www.linkedin.com/in/parag-yewale-111b85362/" target="_blank" rel="noopener" style="color: #0077b5; text-decoration: none;">Parag Yewale</a></div>
             <button id="reset-data-btn" class="btn text danger">Reset Data</button>
             <button id="close-settings-btn" class="btn primary">Done</button>
           </div>

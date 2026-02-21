@@ -1,55 +1,78 @@
-/* Settings Modal Redesign */
+/* =============================================
+   PREMIUM GLASSMORPHIC SETTINGS STYLES
+   ============================================= */
+
 :root {
   /* Mapping to Main CSS Variables */
-  --surface-1: var(--bg-primary);
-  --surface-2: var(--bg-secondary);
-  --surface-3: var(--border-light);
-  --border-color: var(--border-light);
-  --accent-primary: var(--accent-success);
+  --surface-1: rgba(15, 23, 42, 0.8);
+  --surface-2: rgba(0, 0, 0, 0.4);
+  --surface-3: rgba(255, 255, 255, 0.05);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --accent-primary: #4ade80; /* Neon Green */
+  --accent-danger: #ef4444;
+  --text-muted: rgba(255, 255, 255, 0.5);
 }
 
 #settings-modal {
-  width: 90%;
-  max-width: 500px; /* Slightly wider */
+  width: 95%;
+  max-width: 500px;
   padding: 0;
-  display: flex;
+  display: none; /* Changed: Controlled by .hidden class */
   flex-direction: column;
-  height: 80vh; /* Fixed height usage for scrollable content */
-  max-height: 700px;
+  height: 85vh;
+  max-height: 750px;
   overflow: hidden;
+  background: rgba(10, 10, 15, 0.85); /* Removed !important */
+  backdrop-filter: blur(25px); /* Removed !important */
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--border-color); /* Removed !important */
+  border-radius: 24px; /* Removed !important */
+  color: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); /* Removed !important */
+}
+
+#settings-modal:not(.hidden) {
+  display: flex; /* Only flex when not hidden */
 }
 
 #settings-modal h2 {
   margin: 0;
-  padding: 20px 24px;
+  padding: 24px;
   border-bottom: 1px solid var(--border-color);
-  background: var(--surface-2);
-  font-size: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 1.8rem;
+  font-weight: 800;
   flex-shrink: 0;
+  letter-spacing: -0.5px;
+  text-align: left;
 }
 
-/* Tabs */
+/* Tabs Navigation */
 .settings-tabs {
   display: flex;
-  background: var(--surface-1);
-  padding: 0 16px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0 24px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  gap: 12px;
 }
 
 .settings-tab {
   background: none;
   border: none;
-  padding: 14px 16px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  padding: 18px 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   position: relative;
-  transition: color 0.2s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .settings-tab:hover {
-  color: var(--text-primary);
+  color: white;
 }
 
 .settings-tab.active {
@@ -64,33 +87,51 @@
   right: 0;
   height: 3px;
   background: var(--accent-primary);
+  box-shadow: 0 0 15px var(--accent-primary);
   border-radius: 3px 3px 0 0;
 }
 
-/* Content Area */
+/* Content Area Panels */
 .settings-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
-  background: var(--bg-primary);
+  padding: 32px 24px;
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
 }
 
 .settings-panel {
   display: none;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .settings-panel.active {
   display: flex;
 }
 
-/* Form Elements */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sections & Rows */
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-bottom: 16px;
+  gap: 20px;
+  padding-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -99,19 +140,19 @@
 }
 
 .section-title {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  margin-bottom: 4px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .setting-label {
@@ -121,261 +162,247 @@
 }
 
 .setting-name {
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: white;
 }
 
 .setting-desc {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-top: 4px;
+  line-height: 1.4;
 }
 
-/* Inputs */
+/* Form Inputs */
 .setting-input {
-  background: var(--surface-2);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: var(--text-primary);
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: white !important;
   width: 100%;
-  max-width: 250px;
+  max-width: 260px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
 }
 
-/* Avatar Upload */
+.setting-input:focus {
+  border-color: var(--accent-primary) !important;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.1);
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.setting-input.plain-text {
+  background: transparent !important;
+  border: none !important;
+  padding: 12px 0 !important;
+  text-align: right;
+  opacity: 0.8;
+  font-family: var(--font-mono);
+}
+
+/* Avatar Component */
 .avatar-section {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
 }
 
 .avatar-preview {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  width: 90px;
+  height: 90px;
+  border-radius: 24px; /* More squircle look */
   object-fit: cover;
   background: var(--surface-2);
-  border: 2px solid var(--border-color);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.avatar-preview:hover {
+  transform: scale(1.05);
 }
 
 .avatar-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
 }
 
 #remove-avatar-btn {
-  padding: 4px 0;
+  color: var(--accent-danger);
+  font-weight: 600;
   font-size: 0.85rem;
-  opacity: 0.8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
 }
 
 #remove-avatar-btn:hover {
-  opacity: 1;
+  opacity: 0.8;
   text-decoration: underline;
 }
 
-/* Slider */
+/* Modern Toggles */
+.setting-item.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.setting-item.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Custom checkbox toggles are defined at the bottom of the file */
+
+/* Assuming input is followed by label acting as slider */
+/* Since index.html has <input type="checkbox" id="..."> without explicit slider div,
+   I'll style the checkbox itself if possible or provide a custom toggle look if I were to change HTML.
+   But I'll stick to styling what's there. 
+   Usually WordMaster uses switch-like styling for checkboxes. */
+
+/* Volume Slider */
 .volume-slider-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
+  padding: 8px 0;
 }
 
 .volume-slider {
   flex: 1;
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
-  background: var(--surface-3);
-  border-radius: 3px;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
   outline: none;
+  border: 1px solid var(--border-color);
 }
 
 .volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   background: var(--accent-primary);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid var(--bg-primary);
+  border: 3px solid #000;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);
+  transition: transform 0.2s ease;
 }
 
-/* Danger Zone */
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Danger Zone - Refined */
 .danger-zone {
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  background: rgba(220, 38, 38, 0.05);
-  border-radius: 12px;
-  padding: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
+  border-radius: 20px;
+  padding: 24px;
+  margin-top: 10px;
 }
 
 .danger-zone .section-title {
-  color: #ef4444; /* Red */
+  color: var(--accent-danger);
+  opacity: 1;
 }
 
-  /* Footer */
+/* Footer & Buttons */
 .settings-footer {
-  padding: 16px 24px;
+  padding: 24px;
   border-top: 1px solid var(--border-color);
-  background: var(--surface-1);
+  background: rgba(255, 255, 255, 0.02);
   display: flex;
-  justify-content: space-between; /* Space out attribution and reset button */
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex-shrink: 0;
 }
 
 .settings-attribution {
-  font-size: 11px;
-  color: var(--text-secondary);
-  opacity: 0.7;
+  font-size: 0.75rem;
+  color: var(--text-muted);
   font-weight: 500;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
-/* Responsive */
+.settings-attribution a {
+  color: var(--accent-primary) !important;
+  text-decoration: none;
+}
+
+.settings-attribution a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Overrides */
 @media (max-width: 480px) {
   #settings-modal {
     width: 100%;
     height: 100%;
     max-height: none;
-    border-radius: 0;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  
+  .settings-content {
+    padding: 24px 16px;
   }
 }
 
-/* =========================================
-   GLOBAL PREFERENCES (Applied via Body Class)
-   ========================================= */
-
-/* Compact Mode */
-body.compact-mode {
-  --gap-xs: 0.25rem;
-  --gap-sm: 0.5rem;
-  --gap-md: 0.75rem;
-  --gap-lg: 1rem;
-  
-  --header-height: 50px;
-  --keyboard-height: 140px;
-  --info-bar-height: 32px;
+/* Global Transition Helper */
+.settings-modal * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
 }
 
-body.compact-mode .tile {
-  width: 48px;
-  height: 48px;
-  font-size: 1.5rem;
+/* Redefining Checkbox Toggle to match "GuessAI Pro" - Scoped to settings */
+#settings-modal input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 44px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Reduced Motion */
-body.reduced-motion *,
-body.reduced-motion *::before,
-body.reduced-motion *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
-  scroll-behavior: auto !important;
+#settings-modal input[type="checkbox"]:checked {
+    background: var(--accent-primary);
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
 }
 
-/* Plain Text Input (View Only) */
-.setting-input.plain-text {
-  background: transparent;
-  border: none;
-  padding: 8px 0;
-  box-shadow: none;
-  color: var(--text-primary);
-  opacity: 1;
-  cursor: default;
-  width: auto;
-  min-width: 200px;
-  text-align: right;
+#settings-modal input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s ease;
 }
 
-/* Tutorial Modal Styles */
-.tutorial-section {
-  margin-bottom: 24px;
-  text-align: left;
-  border-bottom: 1px solid var(--surface-3);
-  padding-bottom: 16px;
+#settings-modal input[type="checkbox"]:checked::before {
+    left: calc(100% - 18px);
 }
-
-.tutorial-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.tutorial-section h3 {
-  font-size: 1.1rem;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tutorial-section p {
-    color: var(--text-secondary);
-    line-height: 1.5;
-    margin-bottom: 12px;
-}
-
-.tutorial-section ul {
-  padding-left: 20px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.tutorial-section li {
-  margin-bottom: 8px;
-}
-
-.key-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-family: var(--font-mono, monospace);
-    font-size: 0.85em;
-    font-weight: 600;
-    color: var(--text-primary);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.1);
-}
-
-.color-demo-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.demo-tile {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    font-family: var(--font-heading);
-    border-radius: 4px; 
-    flex-shrink: 0;
-}
-
-.demo-tile.correct { background-color: var(--accent-success); }
-.demo-tile.present { background-color: var(--accent-warning); }
-.demo-tile.absent { background-color: var(--accent-absent); }
-
-/* Ensure modal content scrolls properly */
-.modal-content-scroll {
-    overflow-y: auto;
-    max-height: 60vh;
-    padding: 24px;
-    background: var(--bg-primary);
-}
-

@@ -1,4 +1,5 @@
 const { generatePartyCode } = require('./utils/codeGenerator');
+const { evaluateGuess } = require('./utils/gameLogic');
 const {
   createParty, getParty, addPlayerToParty, removePlayerFromParty,
   lockParty, saveRound, getRound, saveGuess, advancePartyRound, finishParty
@@ -124,30 +125,43 @@ function setupSocketEvents(io) {
         if (!round) return callback({ error: 'No active round' });
 
         const player = party.party_players.find(p => p.socket_id === socket.id);
-        const isCorrect = guess.toLowerCase().trim() === round.word;
+        // Evaluate the guess using the shared utility
+        const targetWord = round.word.toLowerCase().trim();
+        const userGuess = guess.toLowerCase().trim();
+        const evaluation = evaluateGuess(userGuess, targetWord);
+        const isCorrect = (userGuess === targetWord);
+
+        console.log(`[Multiplayer Guess] Player: ${player.player_name}, Guess: "${userGuess}", Target: "${targetWord}", isCorrect: ${isCorrect}`);
 
         if (isCorrect) {
-          // Count prior correct guesses
+          // ... (keep existing correct guess logic)
           const { count } = await require('./partyStore').getRoundGuessesCount(partyCode, party.current_round);
-           
           const order = count + 1;
-           const totalGuessers = party.party_players.length - 1;
-           const points = calculatePoints(order - 1, totalGuessers);
+          const totalGuessers = party.party_players.length - 1;
+          const points = calculatePoints(order - 1, totalGuessers);
 
-           await saveGuess(partyCode, party.current_round, socket.id, player.player_name, order, points);
+          await saveGuess(partyCode, party.current_round, socket.id, player.player_name, order, points);
 
-           const updatedParty = await getParty(partyCode);
-           io.to(partyCode).emit('player_guessed_correct', {
-             playerName: player.player_name, order, points,
-             scores: updatedParty.party_players.map(p => ({
-               name: p.player_name, score: p.score, id: p.socket_id
-             }))
-           });
+          const updatedParty = await getParty(partyCode);
+          io.to(partyCode).emit('player_guessed_correct', {
+            playerName: player.player_name, order, points,
+            scores: updatedParty.party_players.map(p => ({
+              name: p.player_name, score: p.score, id: p.socket_id
+            }))
+          });
 
-           if (order >= totalGuessers) endRound(partyCode, io);
-           callback({ success: true, correct: true, points });
+          if (order >= totalGuessers) endRound(partyCode, io);
+          callback({ success: true, correct: true, points, evaluation });
         } else {
-           callback({ success: true, correct: false });
+           // Notify the Giver about the incorrect guess
+           const giver = party.party_players[party.current_giver_index % party.party_players.length];
+           io.to(giver.socket_id).emit('new_guess_received', {
+             playerName: player.player_name,
+             guess: guess,
+             correct: false,
+             evaluation: evaluation
+           });
+           callback({ success: true, correct: false, evaluation });
         }
       } catch (e) {
         console.error(e);
