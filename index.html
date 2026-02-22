@@ -27,6 +27,9 @@
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/toast.css">
+    <!-- Feedback Form Styling -->
+    <link rel="stylesheet" href="css/feedback.css">
     <link rel="stylesheet" href="css/animations.css" />
     <link rel="stylesheet" href="css/multiplayer.css" />
     <link rel="stylesheet" href="css/mobile.css" />
@@ -740,27 +743,34 @@
         </div>
 
         <!-- Result Modal -->
-        <div id="result-modal" class="modal hidden">
-          <h2 id="result-title">Victory!</h2>
-          <div id="result-word" class="highlight-word">WORD</div>
-          <div class="result-stats">
-            <div class="stat-item">
-              <span class="label">Attempts</span
-              ><span id="res-attempts" class="val">0/0</span>
+        <div id="result-modal" class="modal premium-dark-modal result-premium-modal hidden">
+            <div class="result-header">
+                <div id="result-icon" class="result-icon">🏆</div>
+                <h2 id="result-title">Victory!</h2>
+                <p id="result-subtitle" class="modal-subtitle">You found the secret word</p>
             </div>
-            <div class="stat-item">
-              <span class="label">Time</span
-              ><span id="res-time" class="val">00:00</span>
+            
+            <div id="result-word" class="highlight-word">WORD</div>
+            
+            <div class="premium-stats-grid">
+                <div class="premium-stat-card">
+                    <span class="stat-label">Attempts</span>
+                    <span id="res-attempts" class="stat-value">0/0</span>
+                </div>
+                <div class="premium-stat-card">
+                    <span class="stat-label">Time</span>
+                    <span id="res-time" class="stat-value">00:00</span>
+                </div>
+                <div class="premium-stat-card">
+                    <span class="stat-label">Points</span>
+                    <span id="res-score" class="stat-value">0</span>
+                </div>
             </div>
-            <div class="stat-item">
-              <span class="label">Score</span
-              ><span id="res-score" class="val">0</span>
+
+            <div class="modal-actions-vertical" style="width: 100%; margin-top: 24px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                <button id="play-again-btn" class="primary-cta" style="width: 100%; margin-top: 0;">Play Again</button>
+                <button id="home-btn" class="secondary-link">Back to Menu</button>
             </div>
-          </div>
-          <div class="modal-actions">
-            <button id="play-again-btn" class="btn primary">Play Again</button>
-            <button id="home-btn" class="btn secondary">Menu</button>
-          </div>
         </div>
 
 
@@ -1102,6 +1112,16 @@
       <!-- Right Side Ad Removed -->
     </div>
 
+    <!-- ========================================== -->
+    <!-- Floating Feedback Button (Global UI)       -->
+    <!-- ========================================== -->
+    <button class="floating-feedback-btn" id="floatingFeedbackBtn" onclick="openFeedbackModal()" aria-label="Send Feedback">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Give Feedback
+    </button>
+
     <!-- Scripts -->
     <!-- Supabase SDK (served locally) -->
     <!-- Removed UMD script in favor of ESM in supabase-client.js -->
@@ -1121,5 +1141,33 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/multiplayer.js"></script>
     <script src="js/game.js"></script>
+
+    <!-- Feedback Lazy Loader -->
+    <script>
+        window.openFeedbackModal = function() {
+            if (window.feedbackModalManager && window.feedbackModalManager.initialized) {
+                window.feedbackModalManager.open();
+                return;
+            }
+
+            // Lazy load the script
+            const script = document.createElement('script');
+            script.src = 'js/feedbackModal.js';
+            script.onload = () => {
+                if (window.feedbackModalManager) {
+                    window.feedbackModalManager.open();
+                } else {
+                    console.error("Feedback modal failed to initialize.");
+                }
+            };
+            script.onerror = () => {
+                console.error("Failed to load feedbackModal.js");
+                if(window.UI && window.UI.showToast) {
+                    window.UI.showToast('Could not load feedback form. Please check your connection.', 'error');
+                }
+            };
+            document.body.appendChild(script);
+        };
+    </script>
   </body>
 </html>

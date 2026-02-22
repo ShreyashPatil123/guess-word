@@ -1,0 +1,443 @@
+/* =========================================
+   PREMIUM DARK THEME FEEDBACK MODAL
+========================================== */
+
+/* The Modal Overlay */
+.feedback-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 15, 30, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.feedback-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* The Modal Card */
+.feedback-modal-card {
+    background: rgba(20, 25, 40, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: 18px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+    position: relative;
+}
+
+.feedback-modal-overlay.active .feedback-modal-card {
+    transform: scale(1);
+}
+
+/* Modal Header */
+.feedback-modal-header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.feedback-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #fff;
+    font-weight: 700;
+}
+
+.feedback-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.feedback-close-btn:hover {
+    color: #fff;
+}
+
+/* Modal Body / Scroll Area */
+.feedback-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    /* Custom Scrollbar for inner body */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+/* Form Groups */
+.feedback-group {
+    margin-bottom: 20px;
+}
+
+.feedback-group label {
+    display: block;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.feedback-group label.required::after {
+    content: " *";
+    color: #ff4d4d;
+}
+
+/* Inputs & selects */
+.feedback-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feedback-input:focus {
+    outline: none;
+    border-color: #3be27f;
+    box-shadow: 0 0 0 2px rgba(59, 226, 127, 0.2);
+}
+
+.feedback-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.feedback-input[readonly] {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: default;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.feedback-input[readonly]:focus {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+/* Input with Icon inside */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon .feedback-icon-left {
+    position: absolute;
+    left: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+
+.input-with-icon .feedback-input {
+    padding-left: 40px;
+}
+
+/* Select specifically */
+select.feedback-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+select.feedback-input option {
+    background: #1a2238; /* Dark fallback for options dropdown */
+    color: #fff;
+}
+
+/* Severity section animation */
+#severityGroup {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#severityGroup.visible {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: -10px; /* pull up slightly */
+    margin-bottom: 20px;
+}
+
+.severity-options {
+    display: flex;
+    gap: 10px;
+}
+
+.severity-label {
+    flex: 1;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.severity-label:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.severity-label input[type="radio"] {
+    display: none;
+}
+
+.severity-label input[type="radio"]:checked + span {
+    font-weight: 600;
+}
+
+/* Custom severity colors */
+.severity-label.low input[type="radio"]:checked ~ span { color: #3be27f; }
+.severity-label.low:has(input:checked) { border-color: #3be27f; background: rgba(59, 226, 127, 0.1); }
+
+.severity-label.medium input[type="radio"]:checked ~ span { color: #f59e0b; }
+.severity-label.medium:has(input:checked) { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+
+.severity-label.high input[type="radio"]:checked ~ span { color: #ef4444; }
+.severity-label.high:has(input:checked) { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+/* Textarea */
+textarea.feedback-input {
+    resize: none;
+    min-height: 100px;
+}
+
+/* Character Counter */
+.char-counter {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 0.8rem;
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    transition: color 0.2s ease;
+}
+
+.char-counter.error {
+    color: #ef4444;
+}
+
+/* Modal Footer */
+.feedback-modal-footer {
+    padding: 16px 24px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 20, 32, 0.95);
+    flex-shrink: 0;
+}
+
+.feedback-submit-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #1f7a45, #3be27f);
+    border: none;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-submit-btn:hover:not(:disabled) {
+    transform: scale(1.02);
+    box-shadow: 0 10px 25px -5px rgba(59, 226, 127, 0.4);
+}
+
+.feedback-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+    display: none;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.feedback-submit-btn.loading .spinner {
+    display: inline-block;
+}
+.feedback-submit-btn.loading .btn-text {
+    display: none;
+}
+
+/* Success State */
+.feedback-submit-btn.success {
+    background: #10b981; /* Solid green */
+    pointer-events: none;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+/* Floating Feedback Button in Game UI */
+.floating-feedback-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: auto;
+    height: 50px;
+    padding: 0 20px;
+    border-radius: 25px;
+    background: rgba(15, 20, 32, 0.85); /* Darker solid background */
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(59, 226, 127, 0.4); /* Green accent border */
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Space between icon and text */
+    cursor: pointer;
+    z-index: 9999; /* Ensure it's absolutely on top of everything including layouts */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(59, 226, 127, 0.2); /* Glow effect */
+}
+
+/* Tooltip for floating button - Removed since we have text now */
+.floating-feedback-btn::after {
+    display: none;
+}
+
+/* Body scroll lock class */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Post game specific feedback card */
+.postgame-feedback-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-top: 24px;
+}
+
+.postgame-feedback-card p {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.postgame-feedback-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.postgame-feedback-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Utilities */
+.invalid-shake {
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    border-color: #ef4444 !important;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+    40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+
+/* File Input Wrapper */
+.file-input-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-input-wrapper .feedback-input {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.file-preview-status {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    word-break: break-all;
+}
+
+.file-preview-status.selected {
+    color: #3be27f;
+    border-color: rgba(59, 226, 127, 0.3);
+    background: rgba(59, 226, 127, 0.05);
+}

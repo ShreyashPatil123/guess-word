@@ -16,7 +16,15 @@ const fs = require('fs');
 const path = require('path');
 // Load .env allowing override for safety, but checking first
 const dotenv = require("dotenv");
-const envConfig = dotenv.parse(fs.readFileSync(path.join(__dirname, '.env')));
+const envConfig = (() => {
+  try {
+    return dotenv.parse(fs.readFileSync(path.join(__dirname, '.env')));
+  } catch (e) {
+    // On Vercel, .env file doesn't exist; env vars are set in the dashboard
+    console.log('ℹ️ No .env file found, using process.env (Vercel mode)');
+    return {};
+  }
+})();
 
 // 1. Snapshot Pre-load (OS Key)
 const osKey = process.env.GEMINI_API_KEY;
@@ -91,14 +99,14 @@ if (MOJOAUTH_API_KEY) {
 // ==================================
 app.use(cors());
 // FIX: Explicit body size limit for security (prevents large payload attacks)
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "5mb" }));
 app.use(express.static(__dirname));
 
 // ==================================
 // GAME LOGIC & WORD BANK
 // ==================================
 
-const WORD_MARKDOWN_PATH = "C:\\Users\\lenovo\\.gemini\\antigravity\\scratch\\guess_the_word_dataset\\master_word_bank.md";
+const WORD_MARKDOWN_PATH = path.join(__dirname, 'data', 'master_word_bank.md');
 const WORD_CACHE = {
     all: [] // Array of { word, category, pos, difficulty }
 };
@@ -792,6 +800,62 @@ app.post("/auth/check-username", async (req, res) => {
     // If error is "row not found" (PGRST116), it means available
     if (e.code === "PGRST116") res.json({ available: true });
     else res.status(500).json({ error: "Check failed" });
+  }
+});
+
+// ==================================
+// FEEDBACK ROUTE
+// ==================================
+
+/**
+ * POST /api/submit-feedback
+ * Submits user feedback to the Supabase database.
+ * Body: { username, name, contact, feedback_type, severity, message, screenshot_url }
+ */
+app.post("/api/submit-feedback", async (req, res) => {
+  try {
+    const { username, name, contact, feedback_type, severity, message, screenshot_url } = req.body;
+
+    // Basic validation
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return res.status(400).json({ error: "Name is required." });
+    }
+    if (!feedback_type || typeof feedback_type !== 'string' || feedback_type.trim() === '') {
+      return res.status(400).json({ error: "Feedback type is required." });
+    }
+    if (!message || typeof message !== 'string' || message.trim().length < 20) {
+      return res.status(400).json({ error: "Message must be at least 20 characters long." });
+    }
+
+    if (!supabase) {
+      console.error("Supabase client is not configured. Cannot save feedback.");
+      return res.status(500).json({ error: "Internal server error: Database not configured." });
+    }
+
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from("feedback")
+      .insert([
+        {
+          username: username || null,
+          name: name.trim(),
+          contact: contact ? contact.trim() : null,
+          feedback_type: feedback_type.trim(),
+          severity: severity ? severity.trim() : null,
+          message: message.trim(),
+          screenshot_url: screenshot_url ? screenshot_url.trim() : null
+        }
+      ]);
+
+    if (error) {
+      console.error("Error inserting feedback:", error);
+      return res.status(500).json({ error: "Failed to submit feedback." });
+    }
+
+    res.status(200).json({ success: true, message: "Feedback submitted successfully." });
+  } catch (e) {
+    console.error("Unexpected error submitting feedback:", e);
+    res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
 

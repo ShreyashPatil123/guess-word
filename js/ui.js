@@ -529,6 +529,17 @@ window.UI = {
     showResult(result) {
         const { win, word, attempts, maxAttempts, timeText, score } = result;
         const titleId = win ? 'Victory!' : 'Game Over';
+        const iconEl = document.getElementById('result-icon');
+        const subtitleEl = document.getElementById('result-subtitle');
+        const modalEl = document.getElementById('result-modal');
+
+        if (iconEl) iconEl.textContent = win ? '🏆' : '💀';
+        if (subtitleEl) subtitleEl.textContent = win ? 'You found the secret word!' : 'Better luck next time!';
+        if (modalEl) {
+            modalEl.classList.remove('win', 'loss');
+            modalEl.classList.add(win ? 'win' : 'loss');
+        }
+
         document.getElementById('result-title').textContent = titleId;
         document.getElementById('result-word').textContent = word;
         document.getElementById('res-attempts').textContent = `${attempts}/${maxAttempts}`;
